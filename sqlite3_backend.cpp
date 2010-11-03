@@ -342,15 +342,15 @@ namespace cppdb {
 			connection(std::string const &dbname) :
 				conn_(0)
 			{
-				if(sqlite3_open_v2(dbname.c_str(),&conn_,0,0)!=SQLITE_OK) {
+				if(sqlite3_open(dbname.c_str(),&conn_)!=SQLITE_OK) {
 					if(conn_ == 0) {
-						throw cppdb_error("Failed to create db object");
+						throw cppdb_error("sqlite3:failed to create db object");
 					}
 					std::string error_message;
 					try { error_message = sqlite3_errmsg(conn_); }catch(...){}
 					sqlite3_close(conn_);
 					conn_ = 0;
-					throw cppdb_error("Failed to open db:" + error_message);
+					throw cppdb_error("sqlite3:Failed to open connection:" + error_message);
 				}
 			}
 			virtual ~connection() 

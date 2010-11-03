@@ -34,7 +34,7 @@ namespace cppdb {
 			}
 			virtual bool next() 
 			{
-				if(current_ < rows_) {
+				if(current_ <= rows_) {
 					current_ ++;
 					return true;
 				}
