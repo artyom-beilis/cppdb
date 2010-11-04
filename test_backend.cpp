@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+#include <memory>
 
 extern "C" { 
 	cppdb::backend::driver *cppdb_sqlite3_get_driver(); 

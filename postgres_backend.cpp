@@ -7,6 +7,7 @@
 #include <limits>
 #include <iomanip>
 #include <stdlib.h>
+#include <string.h>
 
 namespace cppdb {
 	namespace postgres {
