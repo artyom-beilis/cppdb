@@ -204,29 +204,41 @@ namespace cppdb {
 		public:
 			virtual void reset()
 			{
-				sqlite3_reset(st_);
+				reset_stat();
 				sqlite3_clear_bindings(st_);
 				rowid_ = 0;
 			}
+			void reset_stat()
+			{
+				if(!reset_) {
+					sqlite3_reset(st_);
+					reset_=true;
+				}
+			}
 			virtual void bind(int col,std::string const &v) 
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_text(st_,col,v.c_str(),v.size(),SQLITE_STATIC));
 			}
 			virtual void bind(int col,char const *s)
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_text(st_,col,s,-1,SQLITE_STATIC));
 			}
 			virtual void bind(int col,char const *b,char const *e) 
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_text(st_,col,b,e-b,SQLITE_STATIC));
 			}
 			virtual void bind(int col,std::tm const &v)
 			{
+				reset_stat();
 				std::string tmp = format_time(v);
 				check_bind(sqlite3_bind_text(st_,col,tmp.c_str(),tmp.size(),SQLITE_TRANSIENT));
 			}
 			virtual void bind(int col,std::istream const &v) 
 			{
+				reset_stat();
 				// TODO Fix me
 				std::ostringstream ss;
 				ss<<v.rdbuf();
@@ -235,11 +247,13 @@ namespace cppdb {
 			}
 			virtual void bind(int col,int v) 
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_int(st_,col,v));
 			}
 			template<typename IntType>
 			void do_bind(int col,IntType value)
 			{
+				reset_stat();
 				int r;
 				if(sizeof(value) > sizeof(int) || (long long)(value) > std::numeric_limits<int>::max())
 					r = sqlite3_bind_int64(st_,col,static_cast<sqlite3_int64>(value));
@@ -269,14 +283,17 @@ namespace cppdb {
 			}
 			virtual void bind(int col,double v)
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_double(st_,col,v));
 			}
 			virtual void bind(int col,long double v) 
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_double(st_,col,static_cast<double>(v)));
 			}
 			virtual void bind_null(int col)
 			{
+				reset_stat();
 				check_bind(sqlite3_bind_null(st_,col));
 			}
 			virtual void bind_sequence(long long &value,std::string const & /*sequence*/)
@@ -288,10 +305,14 @@ namespace cppdb {
 				if(rowid_) {
 					rowid_ = 0;
 				}
+				reset_stat();
+				reset_ = false;
 				return new result(st_,conn_);
 			}
 			virtual void exec()
 			{
+				reset_stat();
+				reset_ = false;
 				int r = sqlite3_step(st_);
 				if(r!=SQLITE_DONE) {
 					rowid_ = 0;
@@ -313,7 +334,8 @@ namespace cppdb {
 			statement(std::string const &query,sqlite3 *conn) :
 				rowid_(0),
 				st_(0),
-				conn_(conn)
+				conn_(conn),
+				reset_(true)
 			{
 				if(sqlite3_prepare_v2(conn_,query.c_str(),query.size(),&st_,0)!=SQLITE_OK)
 					throw cppdb_error(sqlite3_errmsg(conn_));
@@ -336,6 +358,7 @@ namespace cppdb {
 			long long *rowid_;
 			sqlite3_stmt *st_;
 			sqlite3 *conn_;
+			bool reset_;
 		};
 		class connection : public backend::connection {
 		public:

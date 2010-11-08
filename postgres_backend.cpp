@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <iostream>
+
 namespace cppdb {
 	namespace postgres {
 		
@@ -27,7 +29,7 @@ namespace cppdb {
 			}
 			virtual next_row has_next()
 			{
-				if(current_ < rows_)
+				if(current_ + 1 < rows_)
 					return next_row_exists;
 				else
 					return last_row_reached; 
@@ -35,8 +37,8 @@ namespace cppdb {
 			}
 			virtual bool next() 
 			{
-				if(current_ <= rows_) {
-					current_ ++;
+				current_ ++;
+				if(current_ < rows_) {
 					return true;
 				}
 				return false;
@@ -368,7 +370,7 @@ namespace cppdb {
 				try {
 					char const * const param_ptr = sequence_.c_str();
 					res = PQexecParams(	conn_,
-								"SELECT curval($1)",
+								"SELECT currval($1)",
 								1, // 1 param
 								0, // types
 								&param_ptr, // param values
