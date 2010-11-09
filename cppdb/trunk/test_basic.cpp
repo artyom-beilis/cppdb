@@ -36,23 +36,28 @@ int main()
 		std::string torig=asctime(&t);
 		int n;
 		long long rowid;
-		cppdb::statement stat = sql<<"insert into test(n,f,t,name) values(?,?,?,?)"
-			<<10<<3.1415926565<<t
-			<<"Hello \'World\'"<<cppdb::sequence(rowid,"test_id_seq");
-		stat.exec();
-		TEST(rowid==1);
-		TEST(stat.affected()==1);
-		std::cout<<"ID: "<<rowid<<", Affected rows "<<stat.affected()<<std::endl;
-		stat = sql<<"insert into test(n,f,t,name) values(?,?,?,?)"
-			<< cppdb::use(10,cppdb::not_null_value)
-			<< cppdb::use(3.1415926565,cppdb::null_value)
+		{
+			cppdb::statement stat = sql<<"insert into test(n,f,t,name) values(?,?,?,?)"
+				<<10<<3.1415926565<<t
+				<<"Hello \'World\'";
+			stat.exec();
+			rowid = stat.sequence_last("test_id_seq"); 
+			TEST(rowid==1);
+			TEST(stat.affected()==1);
+			std::cout<<"ID: "<<rowid<<", Affected rows "<<stat.affected()<<std::endl;
+		}
+		{
+			cppdb::statement stat = sql<<"insert into test(n,f,t,name) values(?,?,?,?)"
+				<< cppdb::use(10,cppdb::not_null_value)
+				<< cppdb::use(3.1415926565,cppdb::null_value)
 			<< cppdb::use(t,cppdb::not_null_value)
 			<< cppdb::use("Hello \'World\'",cppdb::not_null_value)
-			<< cppdb::sequence(rowid,"test_id_seq")
 			<< cppdb::exec();
-		std::cout<<"ID: "<<rowid<<", Affected rows "<<stat.affected()<<std::endl;
-		TEST(rowid==2);
-		TEST(stat.affected()==1);
+			rowid = stat.sequence_last("test_id_seq"); 
+			std::cout<<"ID: "<<rowid<<", Affected rows "<<stat.affected()<<std::endl;
+			TEST(rowid==2);
+			TEST(stat.affected()==1);
+		}
 
 		cppdb::result res = sql<<"select id,n,f,t,name from test limit 10";
 		n=0;
@@ -74,7 +79,7 @@ int main()
 		}
 		TEST(n==2);
 
-		stat = sql<<"delete from test" << cppdb::exec();
+		cppdb::statement stat = sql<<"delete from test" << cppdb::exec();
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
 		TEST(stat.affected()==2);
 		return 0;

@@ -206,7 +206,6 @@ namespace cppdb {
 			{
 				reset_stat();
 				sqlite3_clear_bindings(st_);
-				rowid_ = 0;
 			}
 			void reset_stat()
 			{
@@ -296,18 +295,15 @@ namespace cppdb {
 				reset_stat();
 				check_bind(sqlite3_bind_null(st_,col));
 			}
-			virtual void bind_sequence(long long &value,std::string const & /*sequence*/)
-			{
-				rowid_ = &value;
-			}
 			virtual result *query()
 			{
-				if(rowid_) {
-					rowid_ = 0;
-				}
 				reset_stat();
 				reset_ = false;
 				return new result(st_,conn_);
+			}
+			virtual long long sequence_last(std::string const &name)
+			{
+				return sqlite3_last_insert_rowid(conn_);
 			}
 			virtual void exec()
 			{
@@ -315,27 +311,27 @@ namespace cppdb {
 				reset_ = false;
 				int r = sqlite3_step(st_);
 				if(r!=SQLITE_DONE) {
-					rowid_ = 0;
 					if(r==SQLITE_ROW) {
 						throw cppdb_error("Using exec with query!");
 					}
 					else 
 						check_bind(r);
 				}
-				if(rowid_) {
-					*rowid_ = sqlite3_last_insert_rowid(conn_);
-					rowid_ = 0;
-				}
 			}
 			virtual unsigned long long affected()
 			{
 				return sqlite3_changes(conn_);
 			}
-			statement(std::string const &query,sqlite3 *conn) :
-				rowid_(0),
+			virtual std::string const &sql_query()
+			{
+				return sql_query_;
+			}
+			statement(std::string const &query,sqlite3 *conn,backend::statements_cache *sc) :
+				backend::statement(sc),
 				st_(0),
 				conn_(conn),
-				reset_(true)
+				reset_(true),
+				sql_query_(query)
 			{
 				if(sqlite3_prepare_v2(conn_,query.c_str(),query.size(),&st_,0)!=SQLITE_OK)
 					throw cppdb_error(sqlite3_errmsg(conn_));
@@ -355,10 +351,10 @@ namespace cppdb {
 					throw cppdb_error(sqlite3_errmsg(conn_));
 				}
 			}
-			long long *rowid_;
 			sqlite3_stmt *st_;
 			sqlite3 *conn_;
 			bool reset_;
+			std::string sql_query_;
 		};
 		class connection : public backend::connection {
 		public:
@@ -392,9 +388,12 @@ namespace cppdb {
 			{
 				fast_exec("rollback");
 			}
-			virtual statement *prepare(std::string const &s)
+			virtual statement *prepare(std::string const &q)
 			{
-				return new statement(s,conn_);
+				backend::statement *s = st_cache_.fetch(q);
+				if(s)
+					return static_cast<statement*>(s);
+				return new statement(q,conn_,&st_cache_);
 			}
 			virtual std::string escape(std::string const &s)
 			{
@@ -426,6 +425,7 @@ namespace cppdb {
 			}
 
 			sqlite3 *conn_;
+			backend::statements_cache st_cache_;
 		};
 		class driver : public backend::driver {
 		public:

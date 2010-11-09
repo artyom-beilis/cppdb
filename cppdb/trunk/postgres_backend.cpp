@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <iostream>
-
 namespace cppdb {
 	namespace postgres {
 		
@@ -161,11 +159,12 @@ namespace cppdb {
 
 		class statement : public backend::statement {
 		public:
-			statement(PGconn *conn,std::string const &src_query) :
+			statement(PGconn *conn,std::string const &src_query,backend::statements_cache *sc) :
+				backend::statement(sc),
 				res_(0),
 				conn_(conn),
-				insert_id_(0),
-				params_(0)
+				params_(0),
+				orig_query_(src_query)
 			{
 				std::ostringstream ss;
 				ss.imbue(std::locale::classic());
@@ -328,7 +327,6 @@ namespace cppdb {
 
 			virtual result *query() 
 			{
-				insert_id_ = 0;
 				real_query();
 				switch(PQresultStatus(res_)){
 				case PGRES_TUPLES_OK:
@@ -350,25 +348,21 @@ namespace cppdb {
 				real_query();
 				switch(PQresultStatus(res_)){
 				case PGRES_TUPLES_OK:
-					insert_id_ = 0;
 					throw cppdb_error("Query used instread of statement");
 					break;
 				case PGRES_COMMAND_OK:
-					read_insert_id();
 					break;
 				default:
-					insert_id_ = 0;
 					throw cppdb_error(PQresultErrorMessage(res_));
 				}
 
 			}
-			void read_insert_id()
+			virtual long long sequence_last(std::string const &sequence)
 			{
-				if(insert_id_ == 0)
-					return;
 				PGresult *res = 0;
+				long long rowid;
 				try {
-					char const * const param_ptr = sequence_.c_str();
+					char const * const param_ptr = sequence.c_str();
 					res = PQexecParams(	conn_,
 								"SELECT currval($1)",
 								1, // 1 param
@@ -384,16 +378,15 @@ namespace cppdb {
 					char const *val = PQgetvalue(res,0,0);
 					if(!val || *val==0)
 						throw cppdb_error("Failed to get sequecne id");
-					*insert_id_ = atoll(val);
+					rowid = atoll(val);
 					
 				}
 				catch(...) {
-					insert_id_ = 0;
 					if(res) PQclear(res);
 					throw;
 				}
-				insert_id_ = 0;
 				PQclear(res);
+				return rowid;
 			}
 			virtual unsigned long long affected() 
 			{
@@ -405,10 +398,9 @@ namespace cppdb {
 				}
 				return 0;
 			}
-			virtual void bind_sequence(long long &value,std::string const &sequence)
+			virtual std::string const &sql_query()
 			{
-				insert_id_ = &value;
-				sequence_ = sequence;
+				return orig_query_;
 			}
 		private:
 			void check(int col)
@@ -418,9 +410,8 @@ namespace cppdb {
 			}
 			PGresult *res_;
 			PGconn *conn_;
-			long long *insert_id_;
-			std::string sequence_;
 			std::string query_;
+			std::string orig_query_;
 			unsigned params_;
 			std::vector<std::string> params_values_;
 			std::vector<bool> params_set_;
@@ -455,9 +446,13 @@ namespace cppdb {
 				}
 				catch(...) {}
 			}
-			virtual statement *prepare(std::string const &s)
+			virtual statement *prepare(std::string const &q)
 			{
-				return new statement(conn_,s);
+				backend::statement *s = st_cache_.fetch(q);
+				if(s) {
+					return static_cast<statement*>(s);
+				}
+				return new statement(conn_,q,&st_cache_);
 			}
 			std::string do_escape(char const *b,size_t length)
 			{
@@ -496,6 +491,7 @@ namespace cppdb {
 			}
 		private:
 			PGconn *conn_;
+			backend::statements_cache st_cache_;
 		};
 
 		class driver : public backend::driver {
