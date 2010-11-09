@@ -5,12 +5,10 @@
 #include <string>
 #include "backend.h"
 #include "errors.h"
-#include <boost/shared_ptr.hpp>
-
+#include <assert.h>
 
 namespace cppdb {
-	using boost::shared_ptr;
-
+	
 	typedef enum {
 		null_value,
 		not_null_value
@@ -33,17 +31,7 @@ namespace cppdb {
 			null_tag_type tag;
 		};
 
-		struct rowid_tag {
-			long long *rowid;
-			std::string sequence;
-		};
-	}
-
-	tags::rowid_tag sequence(long long &p,std::string const &s)
-	{
-		tags::rowid_tag tag = { &p,s };
-		return tag;
-	}
+	} // tags
 
 	tags::null_tag null()
 	{
@@ -85,9 +73,9 @@ namespace cppdb {
 		result() : eof_(true),current_col_(0)
 		{
 		}
-		result(	shared_ptr<backend::result> res,
-			shared_ptr<backend::statement> stat,
-			shared_ptr<backend::connection> conn,
+		result(	backend::ref_ptr<backend::result> res,
+			backend::ref_ptr<backend::statement> stat,
+			backend::ref_ptr<backend::connection> conn,
 			bool fetched=false)
 		: eof_(false),
 		  fetched_(fetched),
@@ -96,6 +84,13 @@ namespace cppdb {
 		  stat_(stat),
 		  conn_(conn)
 		{
+		}
+
+		~result()
+		{
+			res_.reset();
+			stat_.reset();
+			conn_.reset();
 		}
 		
 		int cols()
@@ -188,13 +183,18 @@ namespace cppdb {
 		bool eof_;
 		bool fetched_;
 		int current_col_;
-		shared_ptr<backend::result> res_;
-		shared_ptr<backend::statement> stat_;
-		shared_ptr<backend::connection> conn_;
+		backend::ref_ptr<backend::result> res_;
+		backend::ref_ptr<backend::statement> stat_;
+		backend::ref_ptr<backend::connection> conn_;
 	};
 
 	class statement {
 	public:
+		~statement()
+		{
+			stat_.reset();
+			conn_.reset();
+		}
 		void reset()
 		{
 			placeholder_ = 1;
@@ -218,10 +218,6 @@ namespace cppdb {
 		statement &operator<<(std::istream const &v)
 		{
 			return bind(v);
-		}
-		statement &operator<<(tags::rowid_tag const &rid)
-		{
-			return bind_sequence(*rid.rowid,rid.sequence);
 		}
 
 		result operator<<(tags::single_row_tag const &)
@@ -330,10 +326,9 @@ namespace cppdb {
 			stat_->bind_null(col);
 			return *this;
 		}
-		statement &bind_sequence(long long &value,std::string const &sequence)
+		long long sequence_last(std::string const &seq = std::string())
 		{
-			stat_->bind_sequence(value,sequence);
-			return *this;
+			return stat_->sequence_last(seq);
 		}
 		unsigned long long affected()
 		{
@@ -341,7 +336,7 @@ namespace cppdb {
 		}
 		result row()
 		{
-			shared_ptr<backend::result> res(stat_->query());
+			backend::ref_ptr<backend::result> res(stat_->query());
 			if(!res->next())
 				return result();
 			if(res->has_next() == backend::result::next_row_exists) {
@@ -351,7 +346,7 @@ namespace cppdb {
 		}
 		result query()
 		{
-			shared_ptr<backend::result> res(stat_->query());
+			backend::ref_ptr<backend::result> res(stat_->query());
 			return result(res,stat_,conn_);
 		}
 		operator result()
@@ -362,7 +357,7 @@ namespace cppdb {
 		{
 			stat_->exec();
 		}
-		statement(shared_ptr<backend::statement> stat,shared_ptr<backend::connection> conn) :
+		statement(backend::ref_ptr<backend::statement> stat,backend::ref_ptr<backend::connection> conn) :
 			placeholder_(1),
 			stat_(stat),
 			conn_(conn)
@@ -370,15 +365,15 @@ namespace cppdb {
 		}
 	private:
 		int placeholder_;
-		shared_ptr<backend::statement> stat_;
-		shared_ptr<backend::connection> conn_;
+		backend::ref_ptr<backend::statement> stat_;
+		backend::ref_ptr<backend::connection> conn_;
 	};
 
 	class session {
 	public:
 		statement prepare(std::string const &query)
 		{
-			shared_ptr<backend::statement> stat_ptr(conn_->prepare(query));
+			backend::ref_ptr<backend::statement> stat_ptr(conn_->prepare(query));
 			statement stat(stat_ptr,conn_);
 			return stat;
 		}
@@ -414,27 +409,27 @@ namespace cppdb {
 		{
 			return conn_->escape(s);
 		}
-		session(shared_ptr<backend::connection> conn) : conn_(conn)
+		session(backend::ref_ptr<backend::connection> conn) : conn_(conn)
 		{
 		}
 	private:
-		shared_ptr<backend::connection> conn_;
+		backend::ref_ptr<backend::connection> conn_;
 	};
 
 
 	extern "C" cppdb::backend::driver *cppdb_sqlite3_get_driver();
 	extern "C" cppdb::backend::driver *cppdb_postgres_get_driver();
 
-	shared_ptr<backend::connection> postgres(std::string const &db)
+	backend::ref_ptr<backend::connection> postgres(std::string const &db)
 	{
 		backend::driver *drv = cppdb_postgres_get_driver();
-		shared_ptr<backend::connection> conn(drv->open(db));
+		backend::ref_ptr<backend::connection> conn(drv->open(db));
 		return conn;
 	}
-	shared_ptr<backend::connection> sqlite(std::string const &db)
+	backend::ref_ptr<backend::connection> sqlite(std::string const &db)
 	{
 		backend::driver *drv = cppdb_sqlite3_get_driver();
-		shared_ptr<backend::connection> conn(drv->open(db));
+		backend::ref_ptr<backend::connection> conn(drv->open(db));
 		return conn;
 	}
 
