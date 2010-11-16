@@ -1,4 +1,5 @@
 #include "frontend.h"
+#include "driver_manager.h"
 #include <iostream>
 #include <sstream>
 
@@ -11,10 +12,10 @@ int main()
 	try {
 		#ifdef CPPDB_WITH_SQLITE3
 		std::string name="sqlite3";
-		cppdb::session sql(cppdb::sqlite("db.db"));
+		cppdb::session sql(cppdb::driver_manager::instance().connect("sqlite3:db=db.db"));
 		#else
 		std::string name="postgres";
-		cppdb::session sql(cppdb::postgres("dbname='cppcms'"));
+		cppdb::session sql(cppdb::driver_manager::instance().connect("postgres:dbname=test"));
 		#endif
 		try {
 			sql << "DROP TABLE test" << cppdb::exec();

@@ -6,97 +6,13 @@
 #include <memory>
 #include <map>
 #include "errors.h"
+#include "ref_ptr.h"
 
 namespace cppdb {
-	namespace backend {
+	namespace backend {	
 
-		template<typename T>
-		class ref_ptr {
-		public:
-			ref_ptr(T *v=0) : p(0)
-			{
-				reset(v);
-			}
-			~ref_ptr()
-			{
-				reset();
-			}
-			ref_ptr(ref_ptr const &other) : p(0)
-			{
-				reset(other.p);
-			}
-			ref_ptr const &operator=(ref_ptr const &other)
-			{
-				reset(other.p);
-				return *this;
-			}
-			T *get() const
-			{
-				return p;
-			}
-			operator bool() const
-			{
-				return p!=0;
-			}
-			T *operator->() const
-			{
-				if(!p)
-					throw cppdb_error("Attempt to access an empty object");
-				return p;
-			}
-			T &operator*() const
-			{
-				if(!p)
-					throw std::runtime_error("Dereferencing empty pointer");
-				return *p;
-			}
-			void reset(T *v=0)
-			{
-				if(v==p)
-					return;
-				if(p) {
-					if(p->del_ref() == 0) {
-						T::dispose(p);
-					}
-					p=0;
-				}
-				if(v) {
-					v->add_ref();
-				}
-				p=v;
-			}
-		private:
-			T *p;
-		};
-
-		//
-		// We can use not atomic counters as we expect that users do not share
-		// DB connections between different threads as it commont requirement
-		// for all SQL client libraries
-		//
-		class ref_counted {
-		public:
-			ref_counted() : count_(0)
-			{
-			}
-			void add_ref()
-			{
-				++count_;
-			}
-			int del_ref()
-			{
-				return --count_;
-			}
-		private:
-			int count_;
-		};
-	
 		class result : public ref_counted {
 		public:
-			static void dispose(result *p)
-			{
-				delete p;
-			}
 			typedef enum {
 				last_row_reached,
 				next_row_exists,
@@ -215,12 +131,30 @@ namespace cppdb {
 			}
 		}
 
+		class connection;
+
+		class driver : public mt_ref_counted {
+		public:
+			virtual ~driver() {}
+			virtual bool in_use() = 0;
+			virtual connection *open(std::string const &connection_string) = 0;
+			virtual connection *connect(std::string const &connection_string)
+			{
+				return open(connection_string);
+			}
+		};
+		
+		class loadable_driver : public driver {
+		public:
+			virtual ~loadable_driver() {}
+			virtual connection *connect(std::string const &cs);
+		};
 
 		class connection : public ref_counted {
 		public:
-			static void dispose(connection *conn)
+			void set_driver(ref_ptr<loadable_driver> drv) 
 			{
-				delete conn;
+				driver_ = drv;
 			}
 			virtual ~connection() {}
 			virtual void begin() = 0;
@@ -230,14 +164,18 @@ namespace cppdb {
 			virtual std::string escape(std::string const &) = 0;
 			virtual std::string escape(char const *s) = 0;
 			virtual std::string escape(char const *b,char const *e) = 0;
+			virtual std::string name() = 0;
+		private:
+			ref_ptr<loadable_driver> driver_;
 		};
 
-		class driver {
-		public:
-			virtual ~driver() {}
-			virtual std::string name() = 0;
-			virtual connection *open(std::string const &connection_string) = 0;
-		};
+		inline connection *loadable_driver::connect(std::string const &cs)
+		{
+			connection *c = open(cs);
+			c->set_driver(ref_ptr<loadable_driver>(this));
+			return c;
+		}
+
 
 	} // backend
 } // cppdb

@@ -163,8 +163,8 @@ namespace cppdb {
 				backend::statement(sc),
 				res_(0),
 				conn_(conn),
-				params_(0),
-				orig_query_(src_query)
+				orig_query_(src_query),
+				params_(0)
 			{
 				std::ostringstream ss;
 				ss.imbue(std::locale::classic());
@@ -472,9 +472,41 @@ namespace cppdb {
 			{
 				return do_escape(b,e-b);
 			}
+			std::string pq_string(std::string const &conn_str)
+			{
+				std::string driver;
+				std::map<std::string,std::string> props;
+				std::map<std::string,std::string>::iterator p;
+				parse_connection_string(conn_str,driver,props);
+				std::string pq_str;
+				for(p=props.begin();p!=props.end();p++) {
+					if(p->first.compare(0,6,"cppdb_")==0)
+						continue;
+					pq_str+=p->first;
+					pq_str+="='";
+					pq_str+=escape_for_conn(p->second);
+					pq_str+="' ";
+				}
+				return pq_str;
+			}
+			std::string escape_for_conn(std::string const &v)
+			{
+				std::string res;
+				res.reserve(v.size());
+				for(unsigned i=0;i<v.size();i++) {
+					if(v[i]=='\\')
+						res+="\\\\";
+					else if(v[i]=='\'')
+						res+="\\\'";
+					else
+						res+=v[i];
+				}
+				return res;
+			}
 			connection(std::string const &conn_str)
 			{
-				conn_ = PQconnectdb(conn_str.c_str());	
+				std::string pq=pq_string(conn_str);
+				conn_ = PQconnectdb(pq.c_str());	
 				if(!conn_) {
 					throw cppdb_error("postgresql::connection failed to create connection object");
 				}
@@ -489,32 +521,23 @@ namespace cppdb {
 			{
 				PQfinish(conn_);
 			}
+			virtual std::string name()
+			{
+				return "postgres";
+			}
 		private:
 			PGconn *conn_;
 			backend::statements_cache st_cache_;
 		};
 
-		class driver : public backend::driver {
-		public:
-			virtual ~driver() {}
-			virtual std::string name() 
-			{
-				return "postgres";
-			}
-			virtual connection *open(std::string const &connection_string)
-			{
-				return new connection(connection_string);
-			}
-		};
 
 	} // backend
 } // cppdb
 
 
 extern "C" {
-	cppdb::backend::driver *cppdb_postgres_get_driver()
+	cppdb::backend::connection *cppdb_postgres_get_connection(std::string const &cs)
 	{
-		static cppdb::postgres::driver drv;
-		return &drv;
+		return new cppdb::postgres::connection(cs);
 	}
 }

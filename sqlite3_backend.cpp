@@ -358,10 +358,37 @@ namespace cppdb {
 		};
 		class connection : public backend::connection {
 		public:
-			connection(std::string const &dbname) :
+			connection(std::string const &cs) :
 				conn_(0)
 			{
-				if(sqlite3_open(dbname.c_str(),&conn_)!=SQLITE_OK) {
+				std::string driver;
+				std::map<std::string,std::string> props;
+				parse_connection_string(cs,driver,props);
+
+				std::string dbname=props["db"];
+				if(dbname.empty()) {
+					throw cppdb_error("sqlite3:database file (db propery) not specified");
+				}
+
+				std::string mode = props["mode"];
+				if(mode.empty())
+					mode="create";
+				int flags = 0;
+				if(mode == "create")
+					flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+				else if(mode == "readonly")
+					flags = SQLITE_OPEN_READONLY;
+				else if(mode == "readwrite")
+					flags = SQLITE_OPEN_READWRITE;
+				else {
+					throw cppdb_error("sqlite3:invalid mode propery, expected "
+								" 'create' (default), 'readwrite' or 'readonly' values");
+				}
+
+				std::string vfs = props["vfs"];
+				char const *cvfs = vfs.empty() ? (char const *)(0) : vfs.c_str();
+
+				if(sqlite3_open_v2(dbname.c_str(),&conn_,flags,cvfs)!=SQLITE_OK) {
 					if(conn_ == 0) {
 						throw cppdb_error("sqlite3:failed to create db object");
 					}
@@ -416,6 +443,10 @@ namespace cppdb {
 				}
 				return result;
 			}
+			virtual std::string name()
+			{
+				return "sqlite3";
+			}
 		private:
 			void fast_exec(char const *query)
 			{
@@ -427,23 +458,13 @@ namespace cppdb {
 			sqlite3 *conn_;
 			backend::statements_cache st_cache_;
 		};
-		class driver : public backend::driver {
-		public:
-			virtual ~driver() {}
-			virtual std::string name() { return "sqlite3"; }
-			virtual connection *open(std::string const &connection_string) 
-			{
-				return new connection(connection_string);
-			}
-		};
 
 	} // sqlite3_backend
 } // cppdb
 
 extern "C" {
-	cppdb::backend::driver *cppdb_sqlite3_get_driver()
+	cppdb::backend::connection *cppdb_sqlite3_get_connection(std::string const &cs)
 	{
-		static cppdb::sqlite3_backend::driver drv;
-		return &drv;
+		return new cppdb::sqlite3_backend::connection(cs);
 	}
 }

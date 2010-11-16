@@ -1,12 +1,13 @@
 #include "backend.h"
+#include "driver_manager.h"
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
 #include <memory>
 
 extern "C" { 
-	cppdb::backend::driver *cppdb_sqlite3_get_driver(); 
-	cppdb::backend::driver *cppdb_postgres_get_driver();
+	cppdb::backend::connection *cppdb_sqlite3_get_connection(); 
+	cppdb::backend::connection *cppdb_postgres_get_connection();
 }
 
 using namespace std;
@@ -14,13 +15,12 @@ using namespace std;
 #define TEST(x) do { if(x) break; std::ostringstream ss; ss<<"Failed in " << __LINE__ <<' '<< #x; throw std::runtime_error(ss.str()); } while(0)
 
 
-void test(cppdb::backend::driver *drv,char const *conn_str)
+void test(char const *conn_str)
 {
-	auto_ptr<cppdb::backend::connection> sql;
+	auto_ptr<cppdb::backend::connection> sql(cppdb::driver_manager::instance().connect(conn_str));
 	auto_ptr<cppdb::backend::statement> stmt;
 	auto_ptr<cppdb::backend::result> res;
 	
-	sql.reset(drv->open(conn_str));
 	try {
 		stmt.reset(sql->prepare("drop table test"));
 		stmt->exec(); 
@@ -77,12 +77,12 @@ int main(int argc,char **argv)
 	try {
 		#ifdef CPPDB_WITH_SQLITE3 
 		std::cout << "Testing sqlite3" << std::endl;
-		test(cppdb_sqlite3_get_driver(),"test.db");
+		test("sqlite3:db=test.db");
 		std::cout << "Ok" << std::endl;
 		#endif
 		#ifdef CPPDB_WITH_PQ
 		std::cout << "Testing postgresql" << std::endl;
-		test(cppdb_postgres_get_driver(),"dbname='test'");
+		test("postgres:dbname='test'");
 		std::cout << "Ok" << std::endl;
 		#endif
 	}
