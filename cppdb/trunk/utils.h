@@ -2,6 +2,7 @@
 #define CPPDB_UTIL_H
 #include <string>
 #include <ctime>
+#include <map>
 
 namespace cppdb {
 	std::tm parse_time(char const *value);
@@ -10,5 +11,8 @@ namespace cppdb {
 	{
 		return parse_time(v.c_str());
 	}
+	void parse_connection_string(	std::string const &cs,
+					std::string &driver_name,
+					std::map<std::string,std::string> &props);
 }
 #endif

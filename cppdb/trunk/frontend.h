@@ -73,9 +73,9 @@ namespace cppdb {
 		result() : eof_(true),current_col_(0)
 		{
 		}
-		result(	backend::ref_ptr<backend::result> res,
-			backend::ref_ptr<backend::statement> stat,
-			backend::ref_ptr<backend::connection> conn,
+		result(	ref_ptr<backend::result> res,
+			ref_ptr<backend::statement> stat,
+			ref_ptr<backend::connection> conn,
 			bool fetched=false)
 		: eof_(false),
 		  fetched_(fetched),
@@ -88,9 +88,7 @@ namespace cppdb {
 
 		~result()
 		{
-			res_.reset();
-			stat_.reset();
-			conn_.reset();
+			clear();
 		}
 		
 		int cols()
@@ -173,6 +171,14 @@ namespace cppdb {
 		{
 			return eof_ || !fetched_;
 		}
+		void clear()
+		{
+			eof_ = true;
+			fetched_ = true;
+			res_.reset();
+			stat_.reset();
+			conn_.reset();
+		}
 		
 	private:
 		void check()
@@ -183,13 +189,16 @@ namespace cppdb {
 		bool eof_;
 		bool fetched_;
 		int current_col_;
-		backend::ref_ptr<backend::result> res_;
-		backend::ref_ptr<backend::statement> stat_;
-		backend::ref_ptr<backend::connection> conn_;
+		ref_ptr<backend::result> res_;
+		ref_ptr<backend::statement> stat_;
+		ref_ptr<backend::connection> conn_;
 	};
 
 	class statement {
 	public:
+		statement() :	placeholder_(1)
+		{
+		}
 		~statement()
 		{
 			stat_.reset();
@@ -336,7 +345,7 @@ namespace cppdb {
 		}
 		result row()
 		{
-			backend::ref_ptr<backend::result> res(stat_->query());
+			ref_ptr<backend::result> res(stat_->query());
 			if(!res->next())
 				return result();
 			if(res->has_next() == backend::result::next_row_exists) {
@@ -346,7 +355,7 @@ namespace cppdb {
 		}
 		result query()
 		{
-			backend::ref_ptr<backend::result> res(stat_->query());
+			ref_ptr<backend::result> res(stat_->query());
 			return result(res,stat_,conn_);
 		}
 		operator result()
@@ -357,7 +366,7 @@ namespace cppdb {
 		{
 			stat_->exec();
 		}
-		statement(backend::ref_ptr<backend::statement> stat,backend::ref_ptr<backend::connection> conn) :
+		statement(ref_ptr<backend::statement> stat,ref_ptr<backend::connection> conn) :
 			placeholder_(1),
 			stat_(stat),
 			conn_(conn)
@@ -365,15 +374,15 @@ namespace cppdb {
 		}
 	private:
 		int placeholder_;
-		backend::ref_ptr<backend::statement> stat_;
-		backend::ref_ptr<backend::connection> conn_;
+		ref_ptr<backend::statement> stat_;
+		ref_ptr<backend::connection> conn_;
 	};
 
 	class session {
 	public:
 		statement prepare(std::string const &query)
 		{
-			backend::ref_ptr<backend::statement> stat_ptr(conn_->prepare(query));
+			ref_ptr<backend::statement> stat_ptr(conn_->prepare(query));
 			statement stat(stat_ptr,conn_);
 			return stat;
 		}
@@ -409,29 +418,15 @@ namespace cppdb {
 		{
 			return conn_->escape(s);
 		}
-		session(backend::ref_ptr<backend::connection> conn) : conn_(conn)
+		session(ref_ptr<backend::connection> conn) : conn_(conn)
+		{
+		}
+		session()
 		{
 		}
 	private:
-		backend::ref_ptr<backend::connection> conn_;
+		ref_ptr<backend::connection> conn_;
 	};
-
-
-	extern "C" cppdb::backend::driver *cppdb_sqlite3_get_driver();
-	extern "C" cppdb::backend::driver *cppdb_postgres_get_driver();
-
-	backend::ref_ptr<backend::connection> postgres(std::string const &db)
-	{
-		backend::driver *drv = cppdb_postgres_get_driver();
-		backend::ref_ptr<backend::connection> conn(drv->open(db));
-		return conn;
-	}
-	backend::ref_ptr<backend::connection> sqlite(std::string const &db)
-	{
-		backend::driver *drv = cppdb_sqlite3_get_driver();
-		backend::ref_ptr<backend::connection> conn(drv->open(db));
-		return conn;
-	}
 
 } // cppdb
 
