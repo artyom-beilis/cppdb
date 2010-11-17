@@ -1,26 +1,23 @@
 #define CPPDB_SOURCE
 #include "mutex.h"
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-#define USE_WINAPI
-#endif
 
-#ifdef USE_WINAPI
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+// TODO
 #error implement me
-#else
+#else // POSIX
+
 #include <pthread.h>
 
 #ifdef impl_
 #undef impl_
 #endif
 
-#define impl_ (*(pthread_mutex_t **)&mutex_impl_)
-
-#endif
+#define impl_ ((pthread_mutex_t *)mutex_impl_)
 
 namespace cppdb {
 	mutex::mutex() : mutex_impl_(0)
 	{
-		impl_ = new pthread_mutex_t();
+		mutex_impl_ = new pthread_mutex_t();
 		pthread_mutex_init(impl_,0);
 	}
 	mutex::~mutex()
@@ -38,3 +35,5 @@ namespace cppdb {
 	}
 
 }
+
+#endif

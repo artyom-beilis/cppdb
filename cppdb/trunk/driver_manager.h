@@ -11,7 +11,7 @@ namespace cppdb {
 		class connection;
 		class driver;
 	}
-	
+	class connection_info;	
 
 	class driver_manager {
 	public:
@@ -21,6 +21,7 @@ namespace cppdb {
 		void add_search_path(std::string const &);
 		void clear_search_paths();
 		void use_default_search_path(bool v);
+		backend::connection *connect(connection_info const &ci);
 		backend::connection *connect(std::string const &connectoin_string);
 
 	private:
@@ -29,7 +30,7 @@ namespace cppdb {
 		~driver_manager();
 		driver_manager();
 		
-		ref_ptr<backend::driver> load_driver(std::string const &connection_string);
+		ref_ptr<backend::driver> load_driver(connection_info const &ci);
 
 		typedef std::map<std::string,ref_ptr<backend::driver> > drivers_type;
 		std::vector<std::string> search_paths_;
