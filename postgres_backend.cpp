@@ -472,14 +472,11 @@ namespace cppdb {
 			{
 				return do_escape(b,e-b);
 			}
-			std::string pq_string(std::string const &conn_str)
+			std::string pq_string(connection_info const &ci)
 			{
-				std::string driver;
-				std::map<std::string,std::string> props;
-				std::map<std::string,std::string>::iterator p;
-				parse_connection_string(conn_str,driver,props);
+				std::map<std::string,std::string>::const_iterator p;
 				std::string pq_str;
-				for(p=props.begin();p!=props.end();p++) {
+				for(p=ci.properties.begin();p!=ci.properties.end();p++) {
 					if(p->first.compare(0,6,"cppdb_")==0)
 						continue;
 					pq_str+=p->first;
@@ -503,9 +500,9 @@ namespace cppdb {
 				}
 				return res;
 			}
-			connection(std::string const &conn_str)
+			connection(connection_info const &ci)
 			{
-				std::string pq=pq_string(conn_str);
+				std::string pq=pq_string(ci);
 				conn_ = PQconnectdb(pq.c_str());	
 				if(!conn_) {
 					throw cppdb_error("postgresql::connection failed to create connection object");
@@ -536,7 +533,7 @@ namespace cppdb {
 
 
 extern "C" {
-	cppdb::backend::connection *cppdb_postgres_get_connection(std::string const &cs)
+	cppdb::backend::connection *cppdb_postgres_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::postgres::connection(cs);
 	}

@@ -9,6 +9,8 @@
 #include "ref_ptr.h"
 
 namespace cppdb {
+	class connection_info;
+
 	namespace backend {	
 
 		class result : public ref_counted {
@@ -137,17 +139,17 @@ namespace cppdb {
 		public:
 			virtual ~driver() {}
 			virtual bool in_use() = 0;
-			virtual connection *open(std::string const &connection_string) = 0;
-			virtual connection *connect(std::string const &connection_string)
+			virtual connection *open(connection_info const &cs) = 0;
+			virtual connection *connect(connection_info const &cs)
 			{
-				return open(connection_string);
+				return open(cs);
 			}
 		};
 		
 		class loadable_driver : public driver {
 		public:
 			virtual ~loadable_driver() {}
-			virtual connection *connect(std::string const &cs);
+			virtual connection *connect(connection_info const &cs);
 		};
 
 		class connection : public ref_counted {
@@ -169,7 +171,7 @@ namespace cppdb {
 			ref_ptr<loadable_driver> driver_;
 		};
 
-		inline connection *loadable_driver::connect(std::string const &cs)
+		inline connection *loadable_driver::connect(connection_info const &cs)
 		{
 			connection *c = open(cs);
 			c->set_driver(ref_ptr<loadable_driver>(this));

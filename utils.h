@@ -11,8 +11,36 @@ namespace cppdb {
 	{
 		return parse_time(v.c_str());
 	}
+
 	void parse_connection_string(	std::string const &cs,
 					std::string &driver_name,
 					std::map<std::string,std::string> &props);
+
+	class connection_info {
+	public:
+		std::string connection_string;
+		std::string driver;
+		typedef std::map<std::string,std::string> properties_type;
+		properties_type properties;
+		
+		std::string get(std::string const &prop,std::string const &default_value=std::string()) const
+		{
+			properties_type::const_iterator p=properties.find(prop);
+			if(p==properties.end())
+				return default_value;
+			else
+				return p->second;
+		}
+		
+		connection_info()
+		{
+		}
+		connection_info(std::string const &cs) :
+			connection_string(cs)
+		{
+			parse_connection_string(cs,driver,properties);
+		}
+
+	};
 }
 #endif

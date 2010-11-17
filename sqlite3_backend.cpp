@@ -358,21 +358,15 @@ namespace cppdb {
 		};
 		class connection : public backend::connection {
 		public:
-			connection(std::string const &cs) :
+			connection(connection_info const &ci) :
 				conn_(0)
 			{
-				std::string driver;
-				std::map<std::string,std::string> props;
-				parse_connection_string(cs,driver,props);
-
-				std::string dbname=props["db"];
+				std::string dbname=ci.get("db");
 				if(dbname.empty()) {
 					throw cppdb_error("sqlite3:database file (db propery) not specified");
 				}
 
-				std::string mode = props["mode"];
-				if(mode.empty())
-					mode="create";
+				std::string mode = ci.get("mode","create");
 				int flags = 0;
 				if(mode == "create")
 					flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -385,7 +379,7 @@ namespace cppdb {
 								" 'create' (default), 'readwrite' or 'readonly' values");
 				}
 
-				std::string vfs = props["vfs"];
+				std::string vfs = ci.get("vfs");
 				char const *cvfs = vfs.empty() ? (char const *)(0) : vfs.c_str();
 
 				if(sqlite3_open_v2(dbname.c_str(),&conn_,flags,cvfs)!=SQLITE_OK) {
@@ -463,7 +457,7 @@ namespace cppdb {
 } // cppdb
 
 extern "C" {
-	cppdb::backend::connection *cppdb_sqlite3_get_connection(std::string const &cs)
+	cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::sqlite3_backend::connection(cs);
 	}
