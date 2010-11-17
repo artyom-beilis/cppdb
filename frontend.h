@@ -255,6 +255,7 @@ namespace cppdb {
 			else {
 				bind(val.value);
 			}
+			return *this;
 		}
 		
 		template<typename T>
