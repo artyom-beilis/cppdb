@@ -10,6 +10,7 @@
 
 namespace cppdb {
 	class connection_info;
+	class pool;
 
 	namespace backend {	
 
@@ -154,10 +155,12 @@ namespace cppdb {
 
 		class connection : public ref_counted {
 		public:
+			connection() : pool_(0) {}
 			void set_driver(ref_ptr<loadable_driver> drv) 
 			{
 				driver_ = drv;
 			}
+			static void dispose(connection *c);
 			virtual ~connection() {}
 			virtual void begin() = 0;
 			virtual void commit() = 0;
@@ -167,8 +170,14 @@ namespace cppdb {
 			virtual std::string escape(char const *s) = 0;
 			virtual std::string escape(char const *b,char const *e) = 0;
 			virtual std::string name() = 0;
+
+			void recycle_pool(pool *p)
+			{
+				pool_ = p;
+			}
 		private:
 			ref_ptr<loadable_driver> driver_;
+			pool *pool_;
 		};
 
 		inline connection *loadable_driver::connect(connection_info const &cs)
