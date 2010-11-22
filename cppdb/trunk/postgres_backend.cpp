@@ -209,6 +209,7 @@ namespace cppdb {
 			virtual void bind(int col,std::string const &v)
 			{
 				check(col);
+				// FIXME
 				params_values_[col-1]=v;
 				params_set_[col-1]=true;
 			}

@@ -70,7 +70,19 @@ if(CPPDB_HAVE_MAC_OS_X_ATOMIC)
 	add_definitions(-DCPPDB_HAVE_MAC_OS_X_ATOMIC)
 endif()
 
-set(LIBSRC utils.cpp mutex.cpp driver_manager.cpp shared_object.cpp pool.cpp backend atomic_counter.cpp)
+set(LIBSRC 
+	utils.cpp
+	mutex.cpp
+	driver_manager.cpp
+	conn_manager.cpp
+	shared_object.cpp
+	pool.cpp
+	backend.cpp
+	frontend.cpp
+	atomic_counter.cpp
+	)
+
+
 if(ENABLE_SQLITE3)
 	set(LIBSRC ${LIBSRC} sqlite3_backend.cpp)
 	add_definitions(-DCPPDB_WITH_SQLITE3)
