@@ -29,7 +29,7 @@ namespace cppdb {
 		connection_info()
 		{
 		}
-		connection_info(std::string const &cs) :
+		explicit connection_info(std::string const &cs) :
 			connection_string(cs)
 		{
 			parse_connection_string(cs,driver,properties);

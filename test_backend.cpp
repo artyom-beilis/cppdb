@@ -78,12 +78,12 @@ int main(int argc,char **argv)
 	try {
 		#ifdef CPPDB_WITH_SQLITE3 
 		std::cout << "Testing sqlite3" << std::endl;
-		test("sqlite3:db=test.db");
+		test("sqlite3:db=test.db;@stmt_cache_size=1000");
 		std::cout << "Ok" << std::endl;
 		#endif
 		#ifdef CPPDB_WITH_PQ
 		std::cout << "Testing postgresql" << std::endl;
-		test("postgres:dbname='test'");
+		test("postgres:dbname='test'; @stmt_cache_size = 15");
 		std::cout << "Ok" << std::endl;
 		#endif
 	}

@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <iostream>
+
 namespace cppdb {
 	namespace postgres {
 		
@@ -472,7 +474,7 @@ namespace cppdb {
 				std::map<std::string,std::string>::const_iterator p;
 				std::string pq_str;
 				for(p=ci.properties.begin();p!=ci.properties.end();p++) {
-					if(p->first.compare(0,6,"cppdb_")==0)
+					if(p->first.empty() || p->first[0]=='@')
 						continue;
 					pq_str+=p->first;
 					pq_str+="='";

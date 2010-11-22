@@ -1,5 +1,6 @@
 #include "frontend.h"
 #include "driver_manager.h"
+#include "pool.h"
 #include <iostream>
 #include <sstream>
 
@@ -11,21 +12,23 @@ int main()
 
 	try {
 		#ifdef CPPDB_WITH_SQLITE3
-		std::string name="sqlite3";
-		cppdb::session sql(cppdb::driver_manager::instance().connect("sqlite3:db=db.db"));
-		#else
-		std::string name="postgres";
-		cppdb::session sql(cppdb::driver_manager::instance().connect("postgres:dbname=test"));
+		std::string cs = "sqlite3:db=db.db";
+		#else 
+		std::string cs = "postgres:dbname=test";
 		#endif
+		
+		cppdb::ref_ptr<cppdb::pool> pool(cppdb::pool::create(cs));
+		cppdb::session sql(pool->open());
+		
 		try {
 			sql << "DROP TABLE test" << cppdb::exec();
 		}
 		catch(cppdb::cppdb_error const &e){}
-		if(name == "sqlite3") {
+		if(sql.name() == "sqlite3") {
 			sql<<	"create table test ( id integer primary key autoincrement not null, "
 				"n integer, f real , t timestamp ,name text )" << cppdb::exec();
 		}
-		else if(name == "postgres" )  {
+		else if(sql.name() == "postgres" )  {
 			sql<<	"create table test ( id  serial  primary key not null "
 				",n integer, f double precision , t timestamp ,name text )" << cppdb::exec();
 		}

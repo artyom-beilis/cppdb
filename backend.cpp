@@ -6,6 +6,25 @@
 
 namespace cppdb {
 	namespace backend {
+		//result
+		struct result::data {};
+		result::result() {}
+		result::~result() {}
+		
+		//statement
+		struct statement::data {};
+
+		statement::statement() : cache_(0) 
+		{
+		}
+		statement::~statement()
+		{
+		}
+		void statement::cache(statements_cache *c)
+		{
+			cache_ = c;
+		}
+
 		void statement::dispose(statement *p)
 		{
 			if(!p)
@@ -18,18 +37,8 @@ namespace cppdb {
 				delete p;
 		}
 		
-		void connection::dispose(connection *c)
-		{
-			if(!c)
-				return;
-			pool *p = c->pool_;
-			c->pool_ = 0;
-			if(p) {
-				p->put(c);
-			}
-			else
-				delete c;
-		}
+
+		//statements cache//////////////
 
 		struct statements_cache::data {
 
@@ -124,6 +133,12 @@ namespace cppdb {
 			return d.get()!=0;
 		}
 
+		//////////////
+		//connection
+		//////////////
+
+		struct connection::data {};
+
 		ref_ptr<statement> connection::prepare(std::string const &q)
 		{
 			ref_ptr<statement> st;
@@ -145,6 +160,38 @@ namespace cppdb {
 			if(cache_size > 0) {
 				cache_.set_size(cache_size);
 			}
+		}
+		connection::~connection()
+		{
+		}
+
+		void connection::set_pool(ref_ptr<pool> p)
+		{
+			pool_ = p;
+		}
+		void connection::set_driver(ref_ptr<loadable_driver> p)
+		{
+			driver_ = p;
+		}
+		
+		void connection::dispose(connection *c)
+		{
+			if(!c)
+				return;
+			ref_ptr<pool> p = c->pool_;
+			c->pool_ = 0;
+			if(p) {
+				p->put(c);
+			}
+			else
+				delete c;
+		}
+		
+		connection *loadable_driver::connect(connection_info const &cs)
+		{
+			connection *c = open(cs);
+			c->set_driver(ref_ptr<loadable_driver>(this));
+			return c;
 		}
 
 	} // backend

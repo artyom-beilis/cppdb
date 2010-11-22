@@ -46,7 +46,11 @@ namespace cppdb {
 
 			// End of API
 			
-			virtual ~result() {}
+			result();
+			virtual ~result();
+		private:
+			struct data;
+			std::auto_ptr<data> d;
 		};
 
 		class statements_cache;
@@ -78,19 +82,13 @@ namespace cppdb {
 
 			// Caching support
 			static void dispose(statement *selfp);
-
-			void cache(statements_cache *c)
-			{
-				cache_ = c;
-			}
-			statement() : 
-				cache_(0)
-			{
-			}
-			virtual ~statement() 
-			{
-			}
+			
+			void cache(statements_cache *c);
+			statement();
+			virtual ~statement() ;
 		protected:
+			struct data;
+			std::auto_ptr<data> d;
 			statements_cache *cache_;
 		};
 		
@@ -132,12 +130,13 @@ namespace cppdb {
 		class connection : public ref_counted {
 		public:
 			connection(connection_info const &info);
-			void set_driver(ref_ptr<loadable_driver> drv) 
-			{
-				driver_ = drv;
-			}
+			virtual ~connection();
+			void set_pool(ref_ptr<pool> p);
+			void set_driver(ref_ptr<loadable_driver> drv);
 			static void dispose(connection *c);
-			virtual ~connection() {}
+			ref_ptr<statement> prepare(std::string const &q);
+
+			/// API 
 			virtual void begin() = 0;
 			virtual void commit() = 0;
 			virtual void rollback() = 0;
@@ -146,25 +145,17 @@ namespace cppdb {
 			virtual std::string escape(char const *s) = 0;
 			virtual std::string escape(char const *b,char const *e) = 0;
 			virtual std::string name() = 0;
-			
-			ref_ptr<statement> prepare(std::string const &q);
 
-			void recycle_pool(pool *p)
-			{
-				pool_ = p;
-			}
+			// API
+			
 		private:
+			struct data;
+			std::auto_ptr<data> d;
 			statements_cache cache_;
 			ref_ptr<loadable_driver> driver_;
-			pool *pool_;
+			ref_ptr<pool> pool_;
 		};
 
-		inline connection *loadable_driver::connect(connection_info const &cs)
-		{
-			connection *c = open(cs);
-			c->set_driver(ref_ptr<loadable_driver>(this));
-			return c;
-		}
 
 	} // backend
 } // cppdb
