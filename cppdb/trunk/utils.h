@@ -23,14 +23,8 @@ namespace cppdb {
 		typedef std::map<std::string,std::string> properties_type;
 		properties_type properties;
 		
-		std::string get(std::string const &prop,std::string const &default_value=std::string()) const
-		{
-			properties_type::const_iterator p=properties.find(prop);
-			if(p==properties.end())
-				return default_value;
-			else
-				return p->second;
-		}
+		std::string get(std::string const &prop,std::string const &default_value=std::string()) const;
+		int get(std::string const &prop,int default_value) const;
 		
 		connection_info()
 		{

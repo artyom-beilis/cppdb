@@ -17,23 +17,24 @@ using namespace std;
 
 void test(char const *conn_str)
 {
-	auto_ptr<cppdb::backend::connection> sql(cppdb::driver_manager::instance().connect(conn_str));
-	auto_ptr<cppdb::backend::statement> stmt;
-	auto_ptr<cppdb::backend::result> res;
+	cppdb::ref_ptr<cppdb::backend::connection> sql(cppdb::driver_manager::instance().connect(conn_str));
+	cppdb::ref_ptr<cppdb::backend::statement> stmt;
+	cppdb::ref_ptr<cppdb::backend::result> res;
 	
 	try {
-		stmt.reset(sql->prepare("drop table test"));
+		stmt = sql->prepare("drop table test");
 		stmt->exec(); 
 	}catch(...) {}
-	stmt.reset(sql->prepare("create table test ( x integer not null, y varchar )"));
+	stmt = sql->prepare("create table test ( x integer not null, y varchar )");
 	stmt->exec();
-	stmt.reset(sql->prepare("select * from test"));
-	res.reset(stmt->query());
+	stmt = sql->prepare("select * from test");
+	res = stmt->query();
 	TEST(!res->next());
-	stmt.reset(sql->prepare("insert into test(x,y) values(10,'foo')"));
+	stmt  = sql->prepare("insert into test(x,y) values(10,'foo')");
 	stmt->exec();
-	stmt.reset(sql->prepare("select x,y from test"));
-	res.reset(stmt->query());
+	stmt = sql->prepare("select x,y from test");
+
+	res = stmt->query();
 	TEST(res->next());
 	TEST(res->cols()==2);
 	int iv;
@@ -44,11 +45,11 @@ void test(char const *conn_str)
 	TEST(sv=="foo");
 	TEST(!res->next());
 	res.reset();
-	stmt.reset(sql->prepare("insert into test(x,y) values(20,NULL)"));
+	stmt = sql->prepare("insert into test(x,y) values(20,NULL)");
 	stmt->exec();
-	stmt.reset(sql->prepare("select y from test where x=?"));
+	stmt = sql->prepare("select y from test where x=?");
 	stmt->bind(1,20);
-	res.reset(stmt->query());
+	res = stmt->query();
 	TEST(res->next());
 	TEST(res->is_null(0));
 	sv="xxx";
@@ -58,7 +59,7 @@ void test(char const *conn_str)
 	res.reset();
 	stmt->reset();
 	stmt->bind(1,10);
-	res.reset(stmt->query());
+	res = stmt->query();
 	TEST(res->next());
 	sv="";
 	TEST(!res->is_null(0));
@@ -66,7 +67,7 @@ void test(char const *conn_str)
 	TEST(sv=="foo");
 	TEST(!res->next());
 	res.reset();
-	stmt.reset(sql->prepare("DELETE FROM test"));
+	stmt = sql->prepare("DELETE FROM test");
 	stmt->exec();
 }
 

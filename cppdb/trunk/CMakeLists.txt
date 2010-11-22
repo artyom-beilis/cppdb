@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(cppdb)
 include(CheckLibraryExists)
+include(CheckCXXSourceCompiles)
 
 find_library(SQLITE3_LIB sqlite3)
 find_path(SQLITE3_PATH sqlite3.h)
@@ -16,7 +17,57 @@ endif()
 
 find_library(DL_LIB dl)
 
-set(LIBSRC utils.cpp mutex.cpp driver_manager.cpp shared_object.cpp pool.cpp)
+check_cxx_source_compiles(
+	"int main() { volatile int v=0; return __sync_bool_compare_and_swap(&v,0,1); }"
+	CPPDB_HAS_GCC_SYNC)
+
+check_cxx_source_compiles(
+	"#include <bits/atomicity.h> 
+	using __gnu_cxx::__exchange_and_add;
+	int main(){ volatile int x=0; return __exchange_and_add(&x,1);}"
+	CPPDB_HAVE_GCC_BITS_EXCHANGE_AND_ADD)
+if(CPPDB_HAVE_GCC_BITS_EXCHANGE_AND_ADD)
+	add_definitions(-DCPPDB_HAVE_GCC_BITS_EXCHANGE_AND_ADD)
+endif()
+
+check_cxx_source_compiles(
+	"#include <ext/atomicity.h> 
+	using __gnu_cxx::__exchange_and_add;
+	int main(){ volatile int x=0; return __exchange_and_add(&x,1);}"
+	CPPDB_HAVE_GCC_EXT_EXCHANGE_AND_ADD)
+if(CPPDB_HAVE_GCC_EXT_EXCHANGE_AND_ADD)
+	add_definitions(-DCPPDB_HAVE_GCC_EXT_EXCHANGE_AND_ADD)
+endif()
+
+check_cxx_source_compiles(
+	"#include <sys/types.h>
+	#include <machine/atomic.h>
+	int main() { volatile unsigned v=0; return atomic_cmpset_int(&v,1,0); }"
+	CPPDB_HAVE_FREEBSD_ATOMIC)
+
+if(CPPDB_HAVE_FREEBSD_ATOMIC)
+	add_definitions(-DCPPDB_HAVE_FREEBSD_ATOMIC)
+endif()
+
+check_cxx_source_compiles(
+	"#include <atomic.h>
+	int main() { volatile unsigned v=0; return atomic_add_int_nv(&v,1); }"
+	CPPDB_HAVE_SOLARIS_ATOMIC)
+if(CPPDB_HAVE_SOLARIS_ATOMIC)
+	add_definitions(-DCPPDB_HAVE_SOLARIS_ATOMIC)
+endif()
+
+
+check_cxx_source_compiles(
+	"#include <libkern/OSAtomic.h>
+	int main() { volatile int v=0; return OSAtomicAdd32(1,&v); }"
+	CPPDB_HAVE_MAC_OS_X_ATOMIC)
+
+if(CPPDB_HAVE_MAC_OS_X_ATOMIC)
+	add_definitions(-DCPPDB_HAVE_MAC_OS_X_ATOMIC)
+endif()
+
+set(LIBSRC utils.cpp mutex.cpp driver_manager.cpp shared_object.cpp pool.cpp backend atomic_counter.cpp)
 if(ENABLE_SQLITE3)
 	set(LIBSRC ${LIBSRC} sqlite3_backend.cpp)
 	add_definitions(-DCPPDB_WITH_SQLITE3)
