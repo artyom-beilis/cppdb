@@ -1,7 +1,7 @@
 #ifndef CPPDB_REF_PTR_H
 #define CPPDB_REF_PTR_H
 #include "errors.h"
-#include "mutex.h"
+#include "atomic_counter.h"
 
 namespace cppdb {
 	template<typename T>
@@ -65,22 +65,22 @@ namespace cppdb {
 
 	class ref_counted {
 	public:
-		ref_counted() : count_(0)
+		ref_counted() : count_(0) 
 		{
 		}
 		virtual ~ref_counted()
 		{
 		}
-		int add_ref()
+		long add_ref()
 		{
 			return ++count_;
 		}
-		int use_count() const
+		long use_count() const
 		{
-			int val = count_;
+			long val = count_;
 			return val;
 		}
-		int del_ref()
+		long del_ref()
 		{
 			return --count_;
 		}
@@ -89,43 +89,7 @@ namespace cppdb {
 			delete p;
 		}
 	private:
-		int count_;
-	};
-
-	class mt_ref_counted {
-	public:
-		mt_ref_counted() : count_(0)
-		{
-		}
-		virtual ~mt_ref_counted()
-		{
-		}
-		static void dispose(mt_ref_counted *p)
-		{
-			delete p;
-		}
-		int add_ref()
-		{
-			mutex::guard g(lock_);
-			int new_val = ++count_;
-			return new_val;
-
-		}
-		int use_count() const
-		{
-			mutex::guard g(lock_);
-			int val = count_;
-			return val;
-		}
-		int del_ref()
-		{
-			mutex::guard g(lock_);
-			int new_val =  --count_;
-			return new_val;
-		}
-	private:
-		mutable mutex lock_;
-		int count_;
+		atomic_counter count_;
 	};
 } // cppdb
 #endif

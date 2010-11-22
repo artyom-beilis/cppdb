@@ -2,6 +2,7 @@
 #define CPPDB_DRIVER_MANAGER_H
 
 #include "ref_ptr.h"
+#include "mutex.h"
 #include <map>
 #include <string>
 #include <vector>

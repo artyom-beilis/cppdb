@@ -2,6 +2,7 @@
 #include "shared_object.h"
 #include "backend.h"
 #include "utils.h"
+#include "mutex.h"
 
 #include <vector>
 #include <list>

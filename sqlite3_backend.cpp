@@ -326,8 +326,7 @@ namespace cppdb {
 			{
 				return sql_query_;
 			}
-			statement(std::string const &query,sqlite3 *conn,backend::statements_cache *sc) :
-				backend::statement(sc),
+			statement(std::string const &query,sqlite3 *conn) :
 				st_(0),
 				conn_(conn),
 				reset_(true),
@@ -359,6 +358,7 @@ namespace cppdb {
 		class connection : public backend::connection {
 		public:
 			connection(connection_info const &ci) :
+				backend::connection(ci),
 				conn_(0)
 			{
 				std::string dbname=ci.get("db");
@@ -409,12 +409,9 @@ namespace cppdb {
 			{
 				fast_exec("rollback");
 			}
-			virtual statement *prepare(std::string const &q)
+			virtual statement *real_prepare(std::string const &q)
 			{
-				backend::statement *s = st_cache_.fetch(q);
-				if(s)
-					return static_cast<statement*>(s);
-				return new statement(q,conn_,&st_cache_);
+				return new statement(q,conn_);
 			}
 			virtual std::string escape(std::string const &s)
 			{
@@ -450,7 +447,6 @@ namespace cppdb {
 			}
 
 			sqlite3 *conn_;
-			backend::statements_cache st_cache_;
 		};
 
 	} // sqlite3_backend

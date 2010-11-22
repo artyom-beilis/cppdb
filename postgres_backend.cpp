@@ -159,8 +159,7 @@ namespace cppdb {
 
 		class statement : public backend::statement {
 		public:
-			statement(PGconn *conn,std::string const &src_query,backend::statements_cache *sc) :
-				backend::statement(sc),
+			statement(PGconn *conn,std::string const &src_query) :
 				res_(0),
 				conn_(conn),
 				orig_query_(src_query),
@@ -446,13 +445,9 @@ namespace cppdb {
 				}
 				catch(...) {}
 			}
-			virtual statement *prepare(std::string const &q)
+			virtual statement *real_prepare(std::string const &q)
 			{
-				backend::statement *s = st_cache_.fetch(q);
-				if(s) {
-					return static_cast<statement*>(s);
-				}
-				return new statement(conn_,q,&st_cache_);
+				return new statement(conn_,q);
 			}
 			std::string do_escape(char const *b,size_t length)
 			{
@@ -500,7 +495,9 @@ namespace cppdb {
 				}
 				return res;
 			}
-			connection(connection_info const &ci)
+			connection(connection_info const &ci) :
+				backend::connection(ci),
+				conn_(0)
 			{
 				std::string pq=pq_string(ci);
 				conn_ = PQconnectdb(pq.c_str());	
@@ -524,7 +521,6 @@ namespace cppdb {
 			}
 		private:
 			PGconn *conn_;
-			backend::statements_cache st_cache_;
 		};
 
 

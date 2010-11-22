@@ -30,8 +30,8 @@ namespace cppdb {
 		ci_ = ci;
 		
 		size_ = 0;
-		limit_ = atoi(ci_.get("@pool","16").c_str());
-		life_time_ = atoi(ci_.get("@pool_max_idle","600").c_str());
+		limit_ = ci_.get("@pool_size",16);
+		life_time_ = ci_.get("@pool_max_idle",600);
 	}
 	
 	pool::~pool()
@@ -125,28 +125,12 @@ namespace cppdb {
 			}
 		}
 	}
-	// this is thread safe member function
+	
 	void pool::gc()
 	{
 		put(0);
 	}
 
-	namespace backend {
-		void connection::dispose(connection *c)
-		{
-			if(!c)
-				return;
-			pool *p = c->pool_;
-			c->pool_ = 0;
-			if(p) {
-				p->put(c);
-			}
-			else
-				delete c;
-		}
-	}
-	
-	// mutex protected end
 }
 
 

@@ -1,6 +1,9 @@
 #include "utils.h"
 #include "errors.h"
 
+#include <sstream>
+#include <locale>
+
 namespace cppdb {
 	std::string format_time(std::tm const &v)
 	{
@@ -126,5 +129,29 @@ namespace cppdb {
 			}
 		}
 	} //
+	std::string connection_info::get(std::string const &prop,std::string const &default_value) const
+	{
+		properties_type::const_iterator p=properties.find(prop);
+		if(p==properties.end())
+			return default_value;
+		else
+			return p->second;
+	}
+
+	int connection_info::get(std::string const &prop,int default_value) const
+	{
+		properties_type::const_iterator p=properties.find(prop);
+		if(p==properties.end())
+			return default_value;
+		std::istringstream ss;
+		ss.imbue(std::locale::classic());
+		ss.str(p->second);
+		int val;
+		ss >> val;
+		if(!ss || !ss.eof()) {
+			throw cppdb_error("cppdb::connection_info property " + prop + " expected to be integer value");
+		}
+		return val;
+	}
 
 }
