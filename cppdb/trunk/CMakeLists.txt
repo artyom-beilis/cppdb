@@ -20,6 +20,9 @@ find_library(DL_LIB dl)
 check_cxx_source_compiles(
 	"int main() { volatile int v=0; return __sync_bool_compare_and_swap(&v,0,1); }"
 	CPPDB_HAS_GCC_SYNC)
+if(CPPDB_HAS_GCC_SYNC)
+	add_definitions(-DCPPDB_HAS_GCC_SYNC)
+endif()
 
 check_cxx_source_compiles(
 	"#include <bits/atomicity.h> 

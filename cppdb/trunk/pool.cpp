@@ -9,29 +9,30 @@ namespace cppdb {
 
 	struct pool::data {};
 
-	pool::pool(std::string const &cs) :
-		limit_(0),
-		life_time_(0),
-		size_(0)
+	ref_ptr<pool> pool::create(connection_info const &ci)
 	{
-		connection_info inf(cs);
-		init(cs);
+		ref_ptr<pool> p = new pool(ci);
+		return p;
 	}
-	pool::pool(connection_info const &cs) :
+	ref_ptr<pool> pool::create(std::string const &cs)
+	{
+		connection_info ci(cs);
+		ref_ptr<pool> p = new pool(ci);
+		return p;
+	}
+
+	pool::pool(connection_info const &ci) :
 		limit_(0),
 		life_time_(0),
+		ci_(ci),
 		size_(0)
 	{
-		init(cs);
+		limit_ = ci_.get("@pool_size",16);
+		life_time_ = ci_.get("@pool_max_idle",600);
 	}
 		
 	void pool::init(connection_info const &ci)
 	{
-		ci_ = ci;
-		
-		size_ = 0;
-		limit_ = ci_.get("@pool_size",16);
-		life_time_ = ci_.get("@pool_max_idle",600);
 	}
 	
 	pool::~pool()
@@ -48,7 +49,7 @@ namespace cppdb {
 		if(!p) {
 			p=driver_manager::instance().connect(ci_);
 		}
-		p->recycle_pool(this);
+		p->set_pool(this);
 		return p;
 	}
 

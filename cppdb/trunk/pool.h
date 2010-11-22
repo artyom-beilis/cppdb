@@ -12,13 +12,16 @@ namespace cppdb {
 	namespace backend {
 		class connection;
 	}
-
-	class pool {
+	
+	class pool : public ref_counted {
+		pool();
 		pool(pool const &);
 		void operator=(pool const &);
-	public:
-		pool(std::string const &connection_string);
 		pool(connection_info const &ci);
+	public:
+		static ref_ptr<pool> create(std::string const &connection_string);
+		static ref_ptr<pool> create(connection_info const &ci);
+
 		~pool();
 
 		ref_ptr<backend::connection> open();
