@@ -17,8 +17,7 @@ int main()
 		std::string cs = "postgres:dbname=test";
 		#endif
 		
-		cppdb::ref_ptr<cppdb::pool> pool(cppdb::pool::create(cs));
-		cppdb::session sql(pool->open());
+		cppdb::session sql(cs);
 		
 		try {
 			sql << "DROP TABLE test" << cppdb::exec();
@@ -83,7 +82,7 @@ int main()
 		}
 		TEST(n==2);
 
-		cppdb::statement stat = sql<<"delete from test" << cppdb::exec();
+		cppdb::statement stat = sql<<"delete from test where 1" << cppdb::exec();
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
 		TEST(stat.affected()==2);
 		return 0;

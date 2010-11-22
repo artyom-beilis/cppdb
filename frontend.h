@@ -33,7 +33,7 @@ namespace cppdb {
 
 	} // tags
 
-	tags::null_tag null()
+	inline tags::null_tag null()
 	{
 		return tags::null_tag();
 	}
@@ -46,13 +46,13 @@ namespace cppdb {
 	}
 
 
-	tags::use_tag<std::string const &> use(std::string const &v,null_tag_type tag)
+	inline tags::use_tag<std::string const &> use(std::string const &v,null_tag_type tag)
 	{
 		tags::use_tag<std::string const &> res = { v, tag };
 		return res;
 	}
 
-	tags::use_tag<char const *> use(char const *v,null_tag_type tag)
+	inline tags::use_tag<char const *> use(char const *v,null_tag_type tag)
 	{
 		tags::use_tag<char const *> res = { v, tag };
 		return res;
@@ -423,12 +423,12 @@ namespace cppdb {
 		{
 			return conn_->name();
 		}
-		session(ref_ptr<backend::connection> conn) : conn_(conn)
-		{
-		}
-		session()
-		{
-		}
+		session(ref_ptr<backend::connection> conn);
+		session();
+		~session();
+		session(std::string const &cs);
+		void open(std::string const &cs);
+		void close();
 	private:
 		ref_ptr<backend::connection> conn_;
 	};
