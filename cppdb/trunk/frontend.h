@@ -15,11 +15,7 @@ namespace cppdb {
 	} null_tag_type;
 	
 	namespace tags {
-		struct null_tag {};
-		struct exec_tag {};
-		struct single_row_tag {};
 		template<typename T>
-		
 		struct into_tag {
 			T *value;
 			null_tag_type *tag;
@@ -33,11 +29,6 @@ namespace cppdb {
 
 	} // tags
 
-	inline tags::null_tag null()
-	{
-		return tags::null_tag();
-	}
-	
 	template<typename T>
 	tags::into_tag<T> into(T &value,null_tag_type &tag)
 	{
@@ -64,9 +55,6 @@ namespace cppdb {
 		tags::use_tag<T> res = { value, tag };
 		return res;
 	}
-
-	inline tags::exec_tag exec() { return tags::exec_tag(); }
-	inline tags::single_row_tag row() { return tags::single_row_tag(); }
 
 	class result {
 	public:
@@ -147,8 +135,7 @@ namespace cppdb {
 		result &operator>>(T &value)
 		{
 			check();
-			if(!res_->fetch(current_col_++,value))
-				throw null_value_fetch();
+			res_->fetch(current_col_++,value);
 			return *this;
 		}
 
@@ -229,21 +216,14 @@ namespace cppdb {
 			return bind(v);
 		}
 
-		result operator<<(tags::single_row_tag const &)
+		statement &operator<<(void (*manipulator)(statement &st))
 		{
-			return row();
-		}
-
-		statement &operator<<(tags::exec_tag const &)
-		{
-			exec();
+			manipulator(*this);
 			return *this;
 		}
-
-		statement &operator<<(tags::null_tag const &)
+		result operator<<(result (*manipulator)(statement &st))
 		{
-			bind_null();
-			return *this;
+			return manipulator(*this);
 		}
 
 		template<typename T>
@@ -378,6 +358,22 @@ namespace cppdb {
 		ref_ptr<backend::statement> stat_;
 		ref_ptr<backend::connection> conn_;
 	};
+
+
+	inline void exec(statement &st)
+	{
+		st.exec();
+	}
+	
+	inline void null(statement &st)
+	{
+		st.bind_null();
+	}
+
+	inline result row(statement &st)
+	{
+		return st.row();
+	}
 
 	class session {
 	public:
