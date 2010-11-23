@@ -48,6 +48,14 @@ namespace cppdb {
 		}
 	};
 
+	class not_supported_by_backend : public cppdb_error {
+	public:
+		not_supported_by_backend(std::string const &e) :
+			cppdb_error(e)
+		{
+		}
+	};
+
 }
 
 #endif
