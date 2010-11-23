@@ -20,16 +20,16 @@ int main()
 		cppdb::session sql(cs);
 		
 		try {
-			sql << "DROP TABLE test" << cppdb::exec();
+			sql << "DROP TABLE test" << cppdb::exec;
 		}
 		catch(cppdb::cppdb_error const &e){}
 		if(sql.name() == "sqlite3") {
 			sql<<	"create table test ( id integer primary key autoincrement not null, "
-				"n integer, f real , t timestamp ,name text )" << cppdb::exec();
+				"n integer, f real , t timestamp ,name text )" << cppdb::exec;
 		}
 		else if(sql.name() == "postgres" )  {
 			sql<<	"create table test ( id  serial  primary key not null "
-				",n integer, f double precision , t timestamp ,name text )" << cppdb::exec();
+				",n integer, f double precision , t timestamp ,name text )" << cppdb::exec;
 		}
 		std::tm t;
 		time_t tt;
@@ -55,7 +55,7 @@ int main()
 				<< cppdb::use(3.1415926565,cppdb::null_value)
 			<< cppdb::use(t,cppdb::not_null_value)
 			<< cppdb::use("Hello \'World\'",cppdb::not_null_value)
-			<< cppdb::exec();
+			<< cppdb::exec;
 			rowid = stat.sequence_last("test_id_seq"); 
 			std::cout<<"ID: "<<rowid<<", Affected rows "<<stat.affected()<<std::endl;
 			TEST(rowid==2);
@@ -82,7 +82,12 @@ int main()
 		}
 		TEST(n==2);
 
-		cppdb::statement stat = sql<<"delete from test where 1" << cppdb::exec();
+		res = sql << "SELECT n FROM test WHERE id=?" << 1 << cppdb::row;
+		TEST(!res.empty());
+		int val;
+		res >> val;
+		TEST(val == 10);
+		cppdb::statement stat = sql<<"delete from test where 1" << cppdb::exec;
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
 		TEST(stat.affected()==2);
 		return 0;
