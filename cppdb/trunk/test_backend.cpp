@@ -25,7 +25,7 @@ void test(char const *conn_str)
 		stmt = sql->prepare("drop table test");
 		stmt->exec(); 
 	}catch(...) {}
-	stmt = sql->prepare("create table test ( x integer not null, y varchar )");
+	stmt = sql->prepare("create table test ( x integer not null, y varchar(1000) )");
 	stmt->exec();
 	stmt = sql->prepare("select * from test");
 	res = stmt->query();
@@ -76,6 +76,11 @@ void test(char const *conn_str)
 int main(int argc,char **argv)
 {
 	try {
+		if(argc!=1) {
+			std::cout << "Testing conn str " << argv[1];
+			test(argv[1]);
+			std::cout << "Ok" << std::endl;
+		}
 		#ifdef CPPDB_WITH_SQLITE3 
 		std::cout << "Testing sqlite3" << std::endl;
 		test("sqlite3:db=test.db;@stmt_cache_size=1000");

@@ -14,6 +14,9 @@ extern "C" {
 	#ifdef CPPDB_WITH_PQ 
 	cppdb::backend::connection *cppdb_postgres_get_connection(cppdb::connection_info const &cs);
 	#endif
+	#ifdef CPPDB_WITH_ODBC
+	cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs);
+	#endif
 }
 
 
@@ -212,6 +215,11 @@ namespace cppdb {
 				#ifdef CPPDB_WITH_SQLITE3 
 				driver_manager::instance().install_driver(
 					"sqlite3",new static_driver(cppdb_sqlite3_get_connection)
+				);
+				#endif
+				#ifdef CPPDB_WITH_ODBC
+				driver_manager::instance().install_driver(
+					"odbc",new static_driver(cppdb_odbc_get_connection)
 				);
 				#endif
 				#ifdef CPPDB_WITH_PQ 
