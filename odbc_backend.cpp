@@ -27,50 +27,161 @@ namespace cppdb {
 
 		std::string widen(std::string const &s)
 		{
+			throw not_supported_by_backend();
 		}
 
 		std::string widen(char const *b,char const *e)
 		{
+			throw not_supported_by_backend();
+		}
+
+		std::string narrower(std::string const &wide)
+		{
+			throw not_supported_by_backend();
 		}
 
 
-		class result : public ref_counted {
+		class result : public backend::result {
 		public:
-			// Begin of API
+			typedef std::pair<bool,std::string> cell_type;
+			typedef std::vector<cell_type> row_type;
+			typedef std::list<row_type> rows_type;
+			
 			typedef enum {
 				last_row_reached,
 				next_row_exists,
 				next_row_unknown
 			} next_row;
 
-			virtual next_row has_next() = 0;
-			virtual bool next() = 0;
-			virtual bool fetch(int col,short &v) = 0;
-			virtual bool fetch(int col,unsigned short &v) = 0;
-			virtual bool fetch(int col,int &v) = 0;
-			virtual bool fetch(int col,unsigned &v) = 0;
-			virtual bool fetch(int col,long &v) = 0;
-			virtual bool fetch(int col,unsigned long &v) = 0;
-			virtual bool fetch(int col,long long &v) = 0;
-			virtual bool fetch(int col,unsigned long long &v) = 0;
-			virtual bool fetch(int col,float &v) = 0;
-			virtual bool fetch(int col,double &v) = 0;
-			virtual bool fetch(int col,long double &v) = 0;
-			virtual bool fetch(int col,std::string &v) = 0;
-			virtual bool fetch(int col,std::ostream &v) = 0;
-			virtual bool fetch(int col,std::tm &v) = 0;
-			virtual bool is_null(int col) = 0;
-			virtual int cols() = 0;
-			virtual int name_to_column(std::string const &) = 0;
-			virtual std::string column_to_name(int) = 0;
-
-			// End of API
+			virtual next_row has_next()
+			{
+				rows_type::iterator p=current_;
+				if(p == rows_.end() || ++p==rows_.end())
+					return last_row_reached;
+				else
+					return next_row_exists;
+			}
+			virtual bool next() 
+			{
+				if(started_ == false)
+					current_ = rows_.begin();
+				else if(current_!=rows_.end()) {
+					++current_;
+				}
+				return current_!=rows_.end();
+			}
+			template<typename T>
+			bool do_fetch(int col,T &v)
+			{
+				if(at(col).first)
+					return false;
+				std::istringstream ss;
+				ss.imbue(std::locale::classic());
+				ss.str(at(col).second);
+				ss >> v;
+				if(!ss || !ss.eof()) {
+					throw bad_value_cast();
+				}
+				return true;
+			}
+			virtual bool fetch(int col,short &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,unsigned short &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,int &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,unsigned &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,long &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,unsigned long &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,long long &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,unsigned long long &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,float &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,double &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,long double &v)
+			{
+				return  do_feth(col,v);	
+			}
+			virtual bool fetch(int col,std::string &v)
+			{
+				if(at(col).first)
+					return false;
+				v=at(col).second;
+				return true;
+			}
+			virtual bool fetch(int col,std::ostream &v) 
+			{
+				if(at(col).first)
+					return false;
+				v << at(col).second;
+				return true;
+			}
+			virtual bool fetch(int col,std::tm &v)
+			{
+				if(at(col).first)
+					return false;
+				v = parse_time(at(col).second);
+				return true;
+			}
+			virtual bool is_null(int col)
+			{
+				return at(col).first;
+			}
+			virtual int cols()
+			{
+				throw not_supported_by_backend();
+			}
+			virtual int name_to_column(std::string const &) 
+			{
+				throw not_supported_by_backend();
+			}
+			virtual std::string column_to_name(int) 
+			{
+				throw not_supported_by_backend();
+			}
 			
-			result();
-			virtual ~result();
+			result(rows_type &rows)
+			{
+				rows_.swap(rows);
+				started_ = false;
+				current_ = rows_.end();
+			}
+			cell_type &at(int col)
+			{
+				if(current_!=rows_.end() && col >= 0 && col <current_->size())
+					return current_->at(col);
+				throw invalid_column();
+			}
 		private:
-			int cols_;
-			std::list<std::vector<std::string> > rows_;
+			bool started_;
+			rows_type::iterator current_;
+			rows_type rows_;
 		};
 
 		class statements_cache;
@@ -187,26 +298,69 @@ namespace cppdb {
 			virtual result *query()
 			{
 				char buf[1024];
-				std::list<std::vector<std::pair<bool,std::string> > > rows;
-				std::vector<std::pair<bool,std::string> > row;
+				result::rows_type rows;
+				result::row_type row;
 				std::string value;
+				bool is_null = false;
 				int r;
 				while((r=SQLFetch(stmt_))!=SQL_NO_DATA) {
+					row.reserve(100);
 					for(int col=1;;col++) {
 						SQLLEN len = 0;
-						int r = SQLGetData(stmt_,col,SQL_C_CHAR,buf,sizeof(buf),len);
-						if(r == SQL_SUCCESS) {
-							value.assign(buf,len);
+						value.clear();
+						is_null=false;
+						int type = wide_ ? SQL_C_WCHAR : SQL_C_CHAR;
+						int r = SQLGetData(stmt_,col,type,buf,sizeof(buf),&len);
+						if(r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO) {
+							if(len == SQL_NULL_DATA) {
+								is_null = true;
+							}
+							else if(len == SQL_NO_TOTAL) {
+								for(;;) {
+									if(!wide_)
+										value.append(buf,sizeof(buf)-1);
+									else
+										value.append(buf,sizeof(buf)-2);
+									r= SQLGetData(stmt_,col,type,buf,sizeof(buf),&len);
+									if(len == SQL_NO_TOTAL)
+										continue;
+									value.append(buf,len);
+								}
+
+							}
+							if(len > sizeof(buf)) {
+								if(!wide_)
+									value.append(buf,sizeof(buf)-1);
+								else
+									value.append(buf,sizeof(buf)-2);
+								std::vector<char> all(len-sizeof(buf)+2);
+								r = SQLGetData(stmt_,col,type,&all.front(),all.size(),&len);
+								if(len > 0)
+									value.append(&all.front(),len);
+							}
+							else if(len >= 0)// len <= sizeof(buf)) 
+							{
+								value.assign(buf,len);
+							}
+							else {
+								throw cppdb_error("cppdb::odbc::iternal error");
+							}
 						}
-						else if(r == SQL_SUCCESS_WITH_INFO) {
-							value.clear();
-							// TODO FIXME
+						else {
+							break;
 						}
 						row.resize(row.size()+1);
-						row.back().first = true;
+						row.back().first = is_null;
+						if(wide_) {
+							std::string tmp=narrower(value);
+							value.swap(tmp);
+						}
 						row.back().second.swap(value);
+					}
+					rows.push_back(row_type);
+					rows.back().swap(row);
 				}
-
+				return new result(rows);
 			}
 			virtual void exec()
 			{
@@ -496,7 +650,13 @@ namespace cppdb {
 		};
 
 
-	} // backend
+	} // odbc_backend
 } // cppdb
 
+extern "C" {
+	cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs)
+	{
+		return new cppdb::odbc_backend::connection(cs);
+	}
+}
 #endif
