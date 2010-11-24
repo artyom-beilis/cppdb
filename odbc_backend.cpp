@@ -69,8 +69,8 @@ namespace cppdb {
 			result();
 			virtual ~result();
 		private:
-			struct data;
-			std::auto_ptr<data> d;
+			int cols_;
+			std::list<std::vector<std::string> > rows_;
 		};
 
 		class statements_cache;
@@ -82,7 +82,14 @@ namespace cppdb {
 			{
 				SQLFreeStmt(stmt_,SQL_UNBIND);
 				params_.resize(0);
-
+			}
+			parameter &param_at(int col)
+			{
+				if(col < 0)
+					throw invalid_placeholder();
+				if(params_.size() < col)
+					params_.resize(col);
+				return params_[col - 1];
 			}
 			virtual std::string const &sql_query()
 			{
@@ -98,36 +105,11 @@ namespace cppdb {
 			}
 			virtual void bind(int col,char const *b,char const *e)
 			{
-				parameter &p = param_at(col);
-				if(wide_) {
-					sqlwstring tmp = tosqlwide(b,e);
-					p.wvalue.swap(tmp);
-					p.null = false;
-					p.sqltype = SQL_WLONGVARCHAR;
-				}
-				else {
-					p.value.assign(b,e-b);
-					p.null = false;
-					p.sqltype = SQL_LONGVARCHAR;
-				} 
-			}
-			void do_bind(int col,std::string &v,SQLSMALLINT type)
-			{
-				parameter &p = param_at(col);
-				p.null = false;
-				p.sqltype = type;
-				if(wide_) {
-					sqlwstring tmp = tosqlwide(b,e);
-					p.wvalue.swap(tmp);
-				}
-				else {
-					p.value.swap(v);
-				} 
+				param_at(col).set(b,e,wide_);
 			}
 			virtual void bind(int col,std::tm const &s)
 			{
-				std::string s=format_time(s);
-				do_bind(col,s,SQL_TYPE_TIMESTAMP);
+				param_at(col).set(s,wide_);
 			}
 			virtual void bind(int col,std::istream const &in) 
 			{
@@ -146,11 +128,7 @@ namespace cppdb {
 			template<typename T>
 			void do_bind_num(int col,T v)
 			{
-				std::ostringstream ss;
-				ss.imbue(std::locale::classic());
-				ss << v;
-				std::string tmp=ss.str();
-				do_bind(col,tmp,SQL_NUMERIC);
+				param_at(col).set(v,wide_);
 			}
 			virtual void bind(int col,int v) 
 			{
@@ -186,16 +164,55 @@ namespace cppdb {
 			}
 			virtual void bind_null(int col)
 			{
-				parameter &p = param_at(col);
-				p.null = true;
-				p.value.clear();
-				p.wvalue.clear();
-				p.sqltype = SQL_NUMERIC;
+				param_at(col) = parameter();
 			}
-			virtual long long sequence_last(std::string const &sequence) = 0;
-			virtual unsigned long long affected() = 0;
-			virtual result *query() = 0;
-			virtual void exec() = 0;
+			void bind_all()
+			{
+				for(unsigned i=0;i<params_.size();i++) {
+					params_.bind(stat_,i+1);
+				}
+
+			}
+			virtual long long sequence_last(std::string const &sequence) 
+			{
+				throw not_supported_by_backend("cppdb::odbc::sequence_last is not supported by odbc backend");
+			}
+			virtual unsigned long long affected() 
+			{
+				SQLLEN rows = 0;
+				int r = SQLRowCount(stmt_,&rows);
+				check_error(r);
+				return rows;
+			}
+			virtual result *query()
+			{
+				char buf[1024];
+				std::list<std::vector<std::pair<bool,std::string> > > rows;
+				std::vector<std::pair<bool,std::string> > row;
+				std::string value;
+				int r;
+				while((r=SQLFetch(stmt_))!=SQL_NO_DATA) {
+					for(int col=1;;col++) {
+						SQLLEN len = 0;
+						int r = SQLGetData(stmt_,col,SQL_C_CHAR,buf,sizeof(buf),len);
+						if(r == SQL_SUCCESS) {
+							value.assign(buf,len);
+						}
+						else if(r == SQL_SUCCESS_WITH_INFO) {
+							value.clear();
+							// TODO FIXME
+						}
+						row.resize(row.size()+1);
+						row.back().first = true;
+						row.back().second.swap(value);
+				}
+
+			}
+			virtual void exec()
+			{
+				int r=SQLExecute(stmt_);
+				check_error(r);
+			}
 			// End of API
 
 			statement(std::string const &q,SQLHDBC dbc,bool wide) :
