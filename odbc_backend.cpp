@@ -1,43 +1,9 @@
 #include "backend.h"
 
-#if defined(_WIN32) || defined(__WIN32) || defined(WIN32) 
+#if defined(_WIN32) || defined(__WIN32) || defined(WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif
 #include <sqlext.h>
-
-/*
-
-    ret = SQLPrepare(stmt, "INSERT into test VALUES(?,?)", SQL_NTS) ;
-    STMT_CHECK();
-
-    ret = SQLBindParameter(stmt,1,SQL_PARAM_INPUT,SQL_C_CHAR,SQL_NUMERIC,0,0,"123",10,0);
-    STMT_CHECK();
-    SQLBindParameter(stmt,2,SQL_PARAM_INPUT,SQL_C_CHAR,SQL_LONGVARBINARY,0,0,"שלום",8,0);
-    STMT_CHECK();
-    ret = SQLExecute(stmt);
-    STMT_CHECK();
-    ret = SQLPrepare(stmt, "SELECT id,name FROM test", SQL_NTS) ;
-    STMT_CHECK();
-    ret = SQLExecute(stmt);
-    STMT_CHECK();
-    while((ret = SQLFetch(stmt))!=SQL_NO_DATA) {
-	    SQLLEN len,len2;
-	    SQLGetData(stmt,1,SQL_C_CHAR,0,0,&len);
-	    char *buf=malloc(len+1);
-	    SQLGetData(stmt,1,SQL_C_CHAR,buf,len+1,&len2);
-	    buf[len2]=0;
-	    printf("x=[%s]\n",buf);
-	    free(buf);
-    	    SQLGetData(stmt,2,SQL_C_CHAR,0,0,&len);
-	    buf=malloc(len+1);
-	    SQLGetData(stmt,2,SQL_C_CHAR,buf,len+1,&len2);
-	    buf[len2]=0;
-	    printf("y=[%s] of size %d\n",buf,len);
-	    free(buf);
-   }
-
-
-*/
 
 
 namespace cppdb {
@@ -56,17 +22,15 @@ namespace cppdb {
 			SQLINTEGER err;
 			SQLSMALLINT len;
 			SQLGetDiagRec(type,h,1,stat,&err,msg,sizeof(msg),&len);
-			throw cppdb_error("cppdb::odbc:: Failed with error `" + std::string((char *)msg)+"'");
+			throw cppdb_error("cppdb::odbc::Failed with error `" + std::string((char *)msg)+"'");
 		}
-		typedef std::basic_string<SQLWCHAR> sqlwstring;
-		sqlwstring tosqlwide(std::string const &s)
+
+		std::string widen(std::string const &s)
 		{
-			return tosqlwide(s.c_str(),s.c_str()+s.size());
 		}
-		sqlwstring tosqlwide(char const *b,char const *e)
+
+		std::string widen(char const *b,char const *e)
 		{
-			// FIXME!!!
-			return sqlwstring(b,e);
 		}
 
 
@@ -274,12 +238,102 @@ namespace cppdb {
 			struct parameter {
 				parameter() : 
 					null(true),
+					ctype(SQL_C_CHAR),
 					sqltype(SQL_C_NUMERIC)
 				{
 				}
+				void set(char const *b,char const *e,bool wide,int sqt)
+				{
+					if(!wide) {
+						value.assign(b,e-b);
+						null=false;
+						ctype=SQL_C_CHAR;
+						sqltype = sqt;
+					}
+					else {
+						std::string tmp = widen(b,e-b);
+						null=false;
+						ctype=SQL_C_WCHAR;
+						sqltype = sqt;
+					}
+				}
+				void set(std::string &s,bool wide,int sqt)
+				{
+					if(!wide) {
+						value.swap(s);
+						null=false;
+						ctype=SQL_C_CHAR;
+						sqltype = sqt;
+					}
+					else {
+						std::string tmp = widen(s);
+						null=false;
+						ctype=SQL_C_WCHAR;
+						sqltype = sqt;
+					}
+				}
+				void set(char const *b,char const *e,bool wide=false)
+				{
+					if(!wide) {
+						set(b,e,false,SQL_C_LONGVARCHAR);
+					}
+					else {
+						set(b,e,true,SQL_C_WLONGVARCHAR);
+					}
+				}
+				void set(std::tm const &v,bool wide=false)
+				{
+					std::string s = format_time(v);
+					set(s,wide,SQL_C_TIMESTAMP);
+				}
+				template<typename T>
+				void set(T v,bool wide=false)
+				{
+					std::ostringstream ss;
+					ss.imbue(std::locale::classic());
+					if(!std::numeric_limits<T>::is_integer)
+						ss << std::setprecision(std::numeric_limits<T>::digits10+1);
+					ss << v;
+					std::string sv=ss.str();
+					if(std::numeric_limits<T>::is_integer)
+						set(sv,wide,SQL_INTEGER);
+					else
+						set(sv,wide,SQL_DOUBLE);
+				}
+				void bind(int col,SQLHSTMT stmt)
+				{
+					int r;
+					if(null) {
+						r = SQLBindParameter(	stmt,
+									col,
+									SQL_PARAM_INPUT,
+									SQL_C_CHAR, // C type C_CHAR or C_WCHAR
+									SQL_NUMERIC, // for null
+									value.size(), // COLUMNSIZE
+									0, //  Presision
+									0, // string
+									0, // size
+									SQL_NULL_VAL_SHOULD_BE_FIX_ME); // FIXME
+					}
+					else {
+						r = SQLBindParameter(	stmt,
+									col,
+									SQL_PARAM_INPUT,
+									ctype, // C type C_CHAR or C_WCHAR
+									sqltype,
+									value.size(), // COLUMNSIZE
+									0, //  Presision
+									(SQLCHAR*)value.c_str(), // string
+									value.size(),
+									0);
+					}
+
+					check_odbc_error(r,stmt,SQL_HANDLE_STMT);
+				}
+
 				std::string value;
-				sqlwstring wvalue;
 				bool null;
+				SQLSMALLINT ctype;
 				SQLSMALLINT sqltype;
 			};
 
