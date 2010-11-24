@@ -115,11 +115,20 @@ int main(int argc,char **argv)
             char buf[64] = {0};
             ret = SQLGetData(stmt,col,SQL_C_CHAR,buf,sizeof(buf),&len);
             if(ret==SQL_SUCCESS_WITH_INFO) {
-                char *array = calloc(len+1,1);
-                ret = SQLGetData(stmt,col,SQL_C_CHAR,array,len+1,&len);
-                STMT_CHECK();
-                printf("%s%s|",buf,array);
-                free(array);
+		if(len == SQL_NO_TOTAL) {
+			do{
+                		printf("%s",buf);
+				memset(buf,0,sizeof(buf));
+			}while(SQLGetData(stmt,col,SQL_C_CHAR,buf,sizeof(buf),&len) == SQL_SUCCESS_WITH_INFO);
+			printf("|");
+		}
+		else {
+			char *array = calloc(len+1,1);
+			ret = SQLGetData(stmt,col,SQL_C_CHAR,array,len+1,&len);
+			STMT_CHECK();
+			printf("%s%s|",buf,array);
+			free(array);
+		}
             }
             else {
                 printf("%s|",buf);
