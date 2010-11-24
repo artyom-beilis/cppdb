@@ -115,6 +115,10 @@ if(ENABLE_PQ)
 	target_link_libraries(cppdb ${PQ_LIB})
 endif()
 
+if(ENABLE_ODBC)
+	target_link_libraries(cppdb ${ODBC_LIB})
+endif()
+
 target_link_libraries(cppdb ${DL_LIB})
 
 add_executable(test_basic test_basic.cpp)
