@@ -144,7 +144,8 @@ namespace cppdb {
 			virtual std::string escape(std::string const &) = 0;
 			virtual std::string escape(char const *s) = 0;
 			virtual std::string escape(char const *b,char const *e) = 0;
-			virtual std::string name() = 0;
+			virtual std::string driver() = 0;
+			virtual std::string engine() = 0;
 
 			// API
 			
