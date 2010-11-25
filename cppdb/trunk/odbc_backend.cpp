@@ -599,7 +599,7 @@ class statement : public backend::statement {
 				r = SQLBindParameter(	stmt,
 							col,
 							SQL_PARAM_INPUT,
-							wide ? SQL_C_WCHAR  : SQL_C_CHAR, // C type C_CHAR or C_WCHAR
+							SQL_C_CHAR, // C type C_CHAR or C_WCHAR
 							SQL_NUMERIC, // for null
 							value.size(), // COLUMNSIZE
 							0, //  Presision
@@ -638,11 +638,17 @@ public:
 	}
 	parameter &param_at(int col)
 	{
+		col --;
 		if(col < 0)
 			throw invalid_placeholder();
-		if(params_.size() < size_t(col))
-			params_.resize(col);
-		return params_[col - 1];
+		if(params_no_ < 0) {
+			if(params_.size() < size_t(col+1))
+				params_.resize(col+1);
+		}
+		else if(col >= params_no_) {
+			throw invalid_placeholder();
+		}
+		return params_[col];
 	}
 	virtual std::string const &sql_query()
 	{
@@ -839,7 +845,8 @@ public:
 	statement(std::string const &q,SQLHDBC dbc,bool wide) :
 		dbc_(dbc),
 		wide_(wide),
-		query_(q)
+		query_(q),
+		params_no_(-1)
 	{
 		bool stmt_created = false;
 		SQLRETURN r = SQLAllocHandle(SQL_HANDLE_STMT,dbc,&stmt_);
@@ -865,6 +872,11 @@ public:
 			SQLFreeHandle(SQL_HANDLE_STMT,stmt_);
 			throw;
 		}
+		SQLSMALLINT params_no;
+		r = SQLNumParams(stmt_,&params_no);
+		check_error(r);
+		params_no_ = params_no;
+		params_.resize(params_no_);
 	}
 	~statement()
 	{
@@ -882,6 +894,7 @@ private:
 	bool wide_;
 	std::string query_;
 	std::vector<parameter> params_;
+	int params_no_;
 
 	friend class connection;
 	std::string sequence_last_;
@@ -920,7 +933,7 @@ public:
 			r = SQLAllocHandle(SQL_HANDLE_DBC,env_,&dbc_);
 			check_odbc_error(r,env_,SQL_HANDLE_ENV,wide_);
 			dbc_created = true;
-			if(ci.get("@utf","narrow")=="wide") {
+			if(wide_) {
 				r = SQLDriverConnectW(dbc_,0,
 							(SQLWCHAR*)tosqlwide(conn_str(ci)).c_str(),
 							SQL_NTS,0,0,0,SQL_DRIVER_COMPLETE);
