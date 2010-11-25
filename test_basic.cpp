@@ -25,7 +25,7 @@ int main(int argc,char **argv)
 				"n integer, f real , t timestamp ,name text )" << cppdb::exec;
 		}
 		else if(sql.engine() == "mysql") {
-			sql<<	"create table test ( id integer primary key auto increment not null, "
+			sql<<	"create table test ( id integer primary key auto_increment not null, "
 				"n integer, f real , t timestamp ,name text )" << cppdb::exec;
 		}
 		else if(sql.engine() == "postgres" )  {
