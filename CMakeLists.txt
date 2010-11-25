@@ -21,7 +21,9 @@ if(PQ_LIB AND PQ_PATH)
 	set(ENABLE_PQ ON)
 endif()
 
-find_library(DL_LIB dl)
+if(NOT WIN32)
+	find_library(DL_LIB dl)
+endif()
 
 check_cxx_source_compiles(
 	"int main() { volatile int v=0; return __sync_bool_compare_and_swap(&v,0,1); }"
@@ -92,19 +94,19 @@ set(LIBSRC
 if(ENABLE_SQLITE3)
 	set(LIBSRC ${LIBSRC} sqlite3_backend.cpp)
 	add_definitions(-DCPPDB_WITH_SQLITE3)
-	include_directories(SQLITE3_PATH)
+	include_directories(${SQLITE3_PATH})
 endif()
 
 if(ENABLE_PQ)
 	set(LIBSRC ${LIBSRC} postgres_backend.cpp)
 	add_definitions(-DCPPDB_WITH_PQ)
-	include_directories(PQ_PATH)
+	include_directories(${PQ_PATH})
 endif()
 
 if(ENABLE_ODBC)
 	set(LIBSRC ${LIBSRC} odbc_backend.cpp)
 	add_definitions(-DCPPDB_WITH_ODBC)
-	include_directories(ODBC_PATH)
+	include_directories(${ODBC_PATH})
 endif()
 
 add_library(cppdb ${LIBSRC})
@@ -119,7 +121,9 @@ if(ENABLE_ODBC)
 	target_link_libraries(cppdb ${ODBC_LIB})
 endif()
 
-target_link_libraries(cppdb ${DL_LIB})
+if(NOT WIN32)
+	target_link_libraries(cppdb ${DL_LIB})
+endif()
 
 add_executable(test_basic test_basic.cpp)
 add_executable(test_backend test_backend.cpp)

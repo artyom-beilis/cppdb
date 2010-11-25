@@ -1,5 +1,31 @@
 #include "shared_object.h"
-#include <dlfcn.h>
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+#	include <windows.h>
+#	define RTLD_LAZY 0
+
+	namespace cppdb {
+		namespace {
+			void *dlopen(char const *name,int /*unused*/)
+			{
+				return LoadLibrary(name);
+			}
+			void dlclose(void *h)
+			{
+				HMODULE m=(HMODULE)(h);
+				FreeLibrary(m);
+			}
+			void *dlsym(void *h,char const *sym)
+			{
+				HMODULE m=(HMODULE)(h);
+				return (void *)GetProcAddress(m,sym);
+			}
+		}
+	}
+
+#else
+#	include <dlfcn.h>
+#endif
 namespace cppdb {
 	shared_object::shared_object(std::string name,void *h) :
 		dlname_(name),

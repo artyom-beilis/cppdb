@@ -1,6 +1,6 @@
 #include "utils.h"
 #include "errors.h"
-
+#include <time.h>
 #include <sstream>
 #include <locale>
 
@@ -14,27 +14,23 @@ namespace cppdb {
 
 	std::tm parse_time(char const *v)
 	{
-		std::tm tmp = std::tm();
-		tmp.tm_isdst = -1;
-		char const *ptr = strptime(v,"%Y-%m-%d",&tmp);
-		if(!ptr)
+		std::tm t=std::tm();
+		int n;
+		double sec = 0;
+		n = sscanf(v,"%d-%d-%d %d:%d:%lf",
+			&t.tm_year,&t.tm_mon,&t.tm_mday,
+			&t.tm_hour,&t.tm_min,&sec);
+		if(n!=3 && n!=6) 
+		{
 			throw bad_value_cast();
-		if(!*ptr) {
-			mktime(&tmp);
-			return tmp;
 		}
-		ptr = strptime(ptr," %H:%M",&tmp);
-		if(!ptr)
+		t.tm_year-=1900;
+		t.tm_mon-=1;
+		t.tm_isdst = -1;
+		t.tm_sec=static_cast<int>(sec);
+		if(mktime(&t)==-1)
 			throw bad_value_cast();
-		if(!*ptr) {
-			mktime(&tmp);
-			return tmp;
-		}
-		ptr = strptime(ptr,":%S",&tmp);
-		if(!ptr || *ptr)
-			throw bad_value_cast();
-		mktime(&tmp);
-		return tmp;
+		return t;
 	}
 
 	namespace {
