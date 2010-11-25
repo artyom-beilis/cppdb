@@ -28,7 +28,7 @@ int main(int argc,char **argv)
 			sql<<	"create table test ( id integer primary key auto_increment not null, "
 				"n integer, f real , t timestamp ,name text )" << cppdb::exec;
 		}
-		else if(sql.engine() == "postgres" )  {
+		else if(sql.engine() == "postgresql" )  {
 			sql<<	"create table test ( id  serial  primary key not null "
 				",n integer, f double precision , t timestamp ,name text )" << cppdb::exec;
 		}
@@ -92,7 +92,7 @@ int main(int argc,char **argv)
 		int val;
 		res >> val;
 		TEST(val == 10);
-		cppdb::statement stat = sql<<"delete from test where 1" << cppdb::exec;
+		cppdb::statement stat = sql<<"delete from test where 1<>0" << cppdb::exec;
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
 		TEST(stat.affected()==2);
 		return 0;
