@@ -15,7 +15,7 @@ using namespace std;
 #define TEST(x) do { if(x) break; std::ostringstream ss; ss<<"Failed in " << __LINE__ <<' '<< #x; throw std::runtime_error(ss.str()); } while(0)
 
 
-void test(char const *conn_str)
+void test(std::string conn_str)
 {
 	cppdb::ref_ptr<cppdb::backend::connection> sql(cppdb::driver_manager::instance().connect(conn_str));
 	cppdb::ref_ptr<cppdb::backend::statement> stmt;
@@ -75,22 +75,14 @@ void test(char const *conn_str)
 
 int main(int argc,char **argv)
 {
+	if(argc!=2) {
+		std::cerr << "Usage: test_backend connection_string" << std::endl;
+		return 1;
+	}
+	std::string cs = argv[1];
 	try {
-		if(argc!=1) {
-			std::cout << "Testing conn str " << argv[1];
-			test(argv[1]);
-			std::cout << "Ok" << std::endl;
-		}
-		#ifdef CPPDB_WITH_SQLITE3 
-		std::cout << "Testing sqlite3" << std::endl;
-		test("sqlite3:db=test.db;@stmt_cache_size=1000");
+		test(cs);
 		std::cout << "Ok" << std::endl;
-		#endif
-		#ifdef CPPDB_WITH_PQ
-		std::cout << "Testing postgresql" << std::endl;
-		test("postgres:dbname='test'; @stmt_cache_size = 15");
-		std::cout << "Ok" << std::endl;
-		#endif
 	}
 	catch(std::exception const &e) {
 		std::cerr << "Fail " << e.what() << std::endl;

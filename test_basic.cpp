@@ -7,29 +7,34 @@
 #define TEST(x) do { if(x) break; std::ostringstream ss; ss<<"Failed in " << __LINE__ <<' '<< #x; throw std::runtime_error(ss.str()); } while(0)
 
 
-int main()
+int main(int argc,char **argv)
 {
-
+	std::string cs = "sqlite3:db=db.db";
+	if(argc >= 2) {
+		cs = argv[1];
+	}
 	try {
-		#ifdef CPPDB_WITH_SQLITE3
-		std::string cs = "sqlite3:db=db.db";
-		#else 
-		std::string cs = "postgres:dbname=test";
-		#endif
-		
 		cppdb::session sql(cs);
 		
 		try {
 			sql << "DROP TABLE test" << cppdb::exec;
 		}
 		catch(cppdb::cppdb_error const &e){}
-		if(sql.name() == "sqlite3") {
+		if(sql.engine() == "sqlite3") {
 			sql<<	"create table test ( id integer primary key autoincrement not null, "
 				"n integer, f real , t timestamp ,name text )" << cppdb::exec;
 		}
-		else if(sql.name() == "postgres" )  {
+		else if(sql.engine() == "mysql") {
+			sql<<	"create table test ( id integer primary key auto increment not null, "
+				"n integer, f real , t timestamp ,name text )" << cppdb::exec;
+		}
+		else if(sql.engine() == "postgres" )  {
 			sql<<	"create table test ( id  serial  primary key not null "
 				",n integer, f double precision , t timestamp ,name text )" << cppdb::exec;
+		}
+		else {
+			std::cerr << "Unknown engine: " << sql.engine() << std::endl;
+			return 1;
 		}
 		std::tm t;
 		time_t tt;

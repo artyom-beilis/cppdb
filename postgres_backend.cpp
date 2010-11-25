@@ -518,7 +518,11 @@ namespace cppdb {
 			{
 				PQfinish(conn_);
 			}
-			virtual std::string name()
+			virtual std::string driver()
+			{
+				return "postgres";
+			}
+			virtual std::string engine()
 			{
 				return "postgres";
 			}

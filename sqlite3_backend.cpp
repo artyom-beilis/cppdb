@@ -434,7 +434,11 @@ namespace cppdb {
 				}
 				return result;
 			}
-			virtual std::string name()
+			virtual std::string driver()
+			{
+				return "sqlite3";
+			}
+			virtual std::string engine()
 			{
 				return "sqlite3";
 			}

@@ -465,6 +465,8 @@ namespace cppdb {
 
 		class statements_cache;
 
+		class connection;
+
 		class statement : public backend::statement {
 			struct parameter {
 				parameter() : 
@@ -659,7 +661,28 @@ namespace cppdb {
 			}
 			virtual long long sequence_last(std::string const &sequence) 
 			{
-				throw not_supported_by_backend("cppdb::odbc::sequence_last is not supported by odbc backend");
+				ref_ptr<statement> st;
+				if(!sequence_last_.empty()) {
+					ref_ptr<statement> st(new statement(sequence_last_,dbc_,wide_));
+					st->bind(1,sequence);
+				}
+				else if(!last_insert_id_.empty()) {
+					ref_ptr<statement> st(new statement(last_insert_id_,dbc_,wide_));
+				}
+				else {
+					throw not_supported_by_backend(
+						"cppdb::odbc::sequence_last is not supported by odbc backend "
+						"unless properties @squence_last, @last_insert_id are specified "
+						"or @engine is one of mysql, sqlite3, postgresql, mssql");
+				}
+				ref_ptr<result> res = st->query();
+				long long last_id;
+				if(!res->next() || res->cols()!=1 || !res->fetch(0,last_id)) {
+					throw cppdb_error("cppdb::odbc::sequence_last failed to fetch last value");
+				}
+				res.reset();
+				st.reset();
+				return last_id;
 			}
 			virtual unsigned long long affected() 
 			{
@@ -749,6 +772,7 @@ namespace cppdb {
 			// End of API
 
 			statement(std::string const &q,SQLHDBC dbc,bool wide) :
+				dbc_(dbc),
 				wide_(wide),
 				query_(q)
 			{
@@ -786,17 +810,24 @@ namespace cppdb {
 			}
 
 
+			SQLHDBC dbc_;
 			SQLHSTMT stmt_;
 			bool wide_;
 			std::string query_;
 			std::vector<parameter> params_;
+
+			friend class connection;
+			std::string sequence_last_;
+			std::string last_insert_id_;
+
 		};
 		
 		class connection : public backend::connection {
 		public:
 
 			connection(connection_info const &ci) :
-				backend::connection(ci)
+				backend::connection(ci),
+				ci_(ci)
 			{
 				std::string utf_mode = ci.get("@utf","narrow");
 				
@@ -894,7 +925,28 @@ namespace cppdb {
 			}
 			virtual statement *real_prepare(std::string const &q)
 			{
-				return new statement(q,dbc_,wide_);
+				std::auto_ptr<statement> st(new statement(q,dbc_,wide_));
+				std::string seq = ci_.get("@sequence_last","");
+				if(seq.empty()) {
+					std::string eng=engine();
+					if(eng == "sqlite3")
+						st->last_insert_id_ = "select last_insert_rowid()";
+					else if(eng == "mysql")
+						st->last_insert_id_ = "select last_insert_id()";
+					else if(eng == "postgresql")
+						st->sequence_last_ = "select currval(?)";
+					//else if(eng == "mssql") FIXME
+					//	st_->last_insert_id_ = "select @@identity";
+				}
+				else {
+					if(seq.find('?')==std::string::npos)
+						st->last_insert_id_ = seq;
+					else
+						st->sequence_last_ = seq;
+				}
+
+				return st.release();		
+
 			}
 			virtual std::string escape(std::string const &s)
 			{
@@ -908,9 +960,13 @@ namespace cppdb {
 			{
 				throw not_supported_by_backend("cppcms::odbc:: string escaping is not supported");
 			}
-			virtual std::string name() 
+			virtual std::string driver() 
 			{
 				return "odbc";
+			}
+			virtual std::string engine() 
+			{
+				return ci_.get("@engine","unknown");
 			}
 
 			void set_autocommit(bool on)
@@ -928,6 +984,7 @@ namespace cppdb {
 			SQLHENV env_;
 			SQLHDBC dbc_;
 			bool wide_;
+			connection_info ci_;
 		};
 
 

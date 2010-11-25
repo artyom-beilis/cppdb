@@ -415,9 +415,13 @@ namespace cppdb {
 		{
 			return conn_->escape(s);
 		}
-		std::string name()
+		std::string driver()
 		{
-			return conn_->name();
+			return conn_->driver();
+		}
+		std::string engine()
+		{
+			return conn_->engine();
 		}
 		session(ref_ptr<backend::connection> conn);
 		session();
