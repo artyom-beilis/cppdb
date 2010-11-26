@@ -32,6 +32,10 @@ int main(int argc,char **argv)
 			sql<<	"create table test ( id  serial  primary key not null "
 				",n integer, f double precision , t timestamp ,name text )" << cppdb::exec;
 		}
+		else if(sql.engine() == "mssql" )  {
+			sql<<	"create table test ( id integer identity(1,1) primary key not null "
+				",n integer, f double precision , t datetime ,name text )" << cppdb::exec;
+		}
 		else {
 			std::cerr << "Unknown engine: " << sql.engine() << std::endl;
 			return 1;
@@ -67,7 +71,11 @@ int main(int argc,char **argv)
 			TEST(stat.affected()==1);
 		}
 
-		cppdb::result res = sql<<"select id,n,f,t,name from test limit 10";
+		cppdb::result res;
+		if(sql.engine()=="mssql")
+			res = sql<<"select top 10 id,n,f,t,name from test";
+		else
+			res = sql<<"select id,n,f,t,name from test limit 10";
 		n=0;
 		while(res.next()){
 			double f=-1;
