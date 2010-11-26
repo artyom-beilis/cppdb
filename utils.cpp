@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "errors.h"
 #include <time.h>
+#include <stdio.h>
 #include <sstream>
 #include <locale>
 
