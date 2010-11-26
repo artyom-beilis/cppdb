@@ -601,7 +601,7 @@ class statement : public backend::statement {
 							SQL_PARAM_INPUT,
 							SQL_C_CHAR, // C type C_CHAR or C_WCHAR
 							SQL_NUMERIC, // for null
-							value.size(), // COLUMNSIZE
+							10, // COLUMNSIZE
 							0, //  Presision
 							0, // string
 							0, // size
@@ -1016,7 +1016,7 @@ public:
 			else if(eng == "postgresql")
 				st->sequence_last_ = "select currval(?)";
 			else if(eng == "mssql")
-				st->last_insert_id_ = "select scope_identity()";
+				st->last_insert_id_ = "select @@identity";
 		}
 		else {
 			if(seq.find('?')==std::string::npos)
