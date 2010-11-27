@@ -112,7 +112,19 @@ namespace cppdb {
 			{
 				if(do_isnull(col))
 					return false;
-				v.write(PQgetvalue(res_,current_,col),PQgetlength(res_,current_,col));
+				unsigned char *val=(unsigned char*)PQgetvalue(res_,current_,col);
+				size_t len = 0;
+				unsigned char *buf=PQunescapeBytea(val,&len);
+				if(!buf) {
+					throw bad_value_cast();
+				}
+				try {
+					v.write((char *)buf,len);
+				}catch(...) {
+					PQfreemem(buf);
+					throw;
+				}
+				PQfreemem(buf);
 				return true;
 			}
 			virtual bool fetch(int col,std::tm &v)
@@ -161,6 +173,13 @@ namespace cppdb {
 
 		class statement : public backend::statement {
 		public:
+			
+			typedef enum {
+				null_param,
+				text_param,
+				binary_param
+			} param_type;
+
 			statement(PGconn *conn,std::string const &src_query) :
 				res_(0),
 				conn_(conn),
@@ -202,7 +221,7 @@ namespace cppdb {
 					res_ = 0;
 				}
 				std::vector<std::string> vals(params_);
-				std::vector<bool> flags(params_,false);
+				std::vector<param_type> flags(params_,null_param);
 				params_values_.swap(vals);
 				params_set_.swap(flags);
 			}
@@ -211,25 +230,25 @@ namespace cppdb {
 				check(col);
 				// FIXME
 				params_values_[col-1]=v;
-				params_set_[col-1]=true;
+				params_set_[col-1]=text_param;
 			}
 			virtual void bind(int col,char const *s)
 			{
 				check(col);
 				params_values_[col-1]=s;
-				params_set_[col-1]=true;
+				params_set_[col-1]=text_param;
 			}
 			virtual void bind(int col,char const *b,char const *e)
 			{
 				check(col);
 				params_values_[col-1].assign(b,e-b);
-				params_set_[col-1]=true;
+				params_set_[col-1]=text_param;
 			}
 			virtual void bind(int col,std::tm const &v) 
 			{
 				check(col);
 				params_values_[col-1]=format_time(v);
-				params_set_[col-1]=true;
+				params_set_[col-1]=text_param;
 			}
 			virtual void bind(int col,std::istream const &in)
 			{
@@ -237,7 +256,7 @@ namespace cppdb {
 				std::ostringstream ss;
 				ss << in.rdbuf();
 				params_values_[col-1]=ss.str();
-				params_set_[col-1]=true;
+				params_set_[col-1]=binary_param;
 			}
 			
 			template<typename T>
@@ -250,7 +269,7 @@ namespace cppdb {
 					ss << std::setprecision(std::numeric_limits<T>::digits10+1);
 				ss << v;
 				params_values_[col-1]=ss.str();
-				params_set_[col-1]=true;
+				params_set_[col-1]=text_param;
 			}
 
 			virtual void bind(int col,int v)
@@ -288,7 +307,7 @@ namespace cppdb {
 			virtual void bind_null(int col)
 			{
 				check(col);
-				params_set_[col-1]=false;
+				params_set_[col-1]=null_param;
 				std::string tmp;
 				params_values_[col-1].swap(tmp);
 			}
@@ -297,19 +316,28 @@ namespace cppdb {
 			{
 				char const * const *pvalues = 0;
 				int *plengths = 0;
+				int *pformats = 0;
 				std::vector<char const *> values;
 				std::vector<int> lengths;
+				std::vector<int> formats;
+				std::vector<Oid> oids;
 				if(params_>0) {
 					values.resize(params_,0);
 					lengths.resize(params_,0);
+					formats.resize(params_,0);
+					oids.resize(params_,0);
 					for(unsigned i=0;i<params_;i++) {
-						if(params_set_[i]) {
+						if(params_set_[i]!=null_param) {
 							values[i]=params_values_[i].c_str();
 							lengths[i]=params_values_[i].size();
+							if(params_set_[i]==binary_param) {
+								formats[i]=1;
+							}
 						}
 					}
 					pvalues=&values.front();
 					plengths=&lengths.front();
+					pformats=&formats.front();
 				}
 				if(res_) {
 					PQclear(res_);
@@ -322,7 +350,7 @@ namespace cppdb {
 					0, // param types
 					pvalues,
 					plengths,
-					0, // format - text
+					pformats, // format - text
 					0 // result format - text
 					);
 			}
@@ -416,7 +444,7 @@ namespace cppdb {
 			std::string orig_query_;
 			unsigned params_;
 			std::vector<std::string> params_values_;
-			std::vector<bool> params_set_;
+			std::vector<param_type> params_set_;
 		};
 
 		class connection : public backend::connection {

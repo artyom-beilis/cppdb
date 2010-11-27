@@ -70,7 +70,6 @@ void test(std::string conn_str)
 	stmt = sql->prepare("DELETE FROM test");
 	stmt->exec();
 	if(!(sql->engine()=="mssql" && (conn_str.find("utf=wide")==std::string::npos || conn_str.find("utf=narrow")!=std::string::npos))) {
-		std::cout << "Testing unicode" << std::endl;
 		stmt = sql->prepare("insert into test(x,y) values(?,?)");
 		stmt->bind(1,15);
 		stmt->bind(2,"שלום");
@@ -84,35 +83,124 @@ void test(std::string conn_str)
 	}
 	stmt = sql->prepare("drop table test");
 	stmt->exec();
+	stmt.reset();
+	if(sql->engine() == "sqlite3") {
+		stmt = sql->prepare("create table test ( id integer primary key autoincrement not null, n integer)");
+	}
+	else if(sql->engine() == "mysql") {
+		stmt = sql->prepare("create table test ( id integer primary key auto_increment not null, n integer)");
+	}
+	else if(sql->engine() == "postgresql" )  {
+		stmt = sql->prepare("create table test ( id  serial  primary key not null, n integer)");
+	}
+	else if(sql->engine() == "mssql" )  {
+		stmt = sql->prepare("create table test ( id integer identity(1,1) primary key not null,n integer)");
+	}
+	if(stmt) {
+		stmt->exec();
+		stmt = sql->prepare("insert into test(n) values(?)");
+		stmt->bind(1,10);
+		stmt->exec();
+		TEST(stmt->sequence_last("test_id_seq") == 1);
+		stmt->reset();
+		stmt->bind(1,20);
+		stmt->exec();
+		TEST(stmt->sequence_last("test_id_seq") == 2);
+		stmt = sql->prepare("drop table test");
+		stmt->exec();
+		stmt.reset();
+	}
+
+
 	if(sql->engine() == "mssql") 
-		stmt = sql->prepare("create table test ( i integer, r real, t datetime, s varchar(1000))");
+		stmt = sql->prepare("create table test ( i integer, r real, t datetime, s varchar(1000), bl varbinary(max))");
 	else if(sql->engine() == "mysql") 
-		stmt = sql->prepare("create table test ( i integer, r real, t datetime default null, s varchar(1000)) Engine = innodb");
+		stmt = sql->prepare("create table test ( i integer, r real, t datetime default null, s varchar(1000), bl blob) Engine = innodb");
+	else if(sql->engine() == "postgresql")
+		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(1000), bl bytea)");
 	else
-		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(1000))");
+		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(1000), bl blob)");
 	stmt->exec();
-	stmt = sql->prepare("insert into test values(?,?,?,?)");
+	stmt = sql->prepare("insert into test values(?,?,?,?,?)");
 	stmt->bind_null(1);
 	stmt->bind_null(2);
 	stmt->bind_null(3);
 	stmt->bind_null(4);
+	stmt->bind_null(5);
 	stmt->exec();
 	TEST(stmt->affected()==1);
-	stmt = sql->prepare("select i,r,t,s from test");
+	stmt->reset();
+	stmt->bind(1,10);
+	stmt->bind(2,3.14);
+	time_t now=time(0);
+	std::tm t=*localtime(&now);
+	stmt->bind(3,t);
+	stmt->bind(4,"to be or not to be");
+	std::istringstream iss;
+	iss.str(std::string("\xFF\0\xFE\1\2",5));
+	if(sql->driver()!="odbc") 
+		stmt->bind(5,iss);
+	else
+		stmt->bind_null(5);
+	stmt->exec();
+	stmt = sql->prepare("select i,r,t,s,bl from test");
 	res = stmt->query();
-	TEST(res->next());
 	{
+		TEST(res->cols()==5);
+		TEST(res->column_to_name(0)=="i");
+		TEST(res->column_to_name(1)=="r");
+		TEST(res->column_to_name(2)=="t");
+		TEST(res->column_to_name(3)=="s");
+		TEST(res->column_to_name(4)=="bl");
+
+		TEST(res->name_to_column("i")==0);
+		TEST(res->name_to_column("r")==1);
+		TEST(res->name_to_column("t")==2);
+		TEST(res->name_to_column("s")==3);
+		TEST(res->name_to_column("bl")==4);
+		TEST(res->name_to_column("x")==-1);
+		
+		TEST(res->next());
+
+		std::ostringstream oss;
 		int i=-1; double r=-1; std::tm t=std::tm(); std::string s="def";
+		TEST(res->is_null(0));
+		TEST(res->is_null(1));
+		TEST(res->is_null(2));
+		TEST(res->is_null(3));
+		TEST(res->is_null(4));
 		TEST(!res->fetch(0,i));
 		TEST(!res->fetch(1,r));
 		TEST(!res->fetch(2,t));
 		TEST(!res->fetch(3,s));
-		TEST(i==-1 && r==-1 && t.tm_year == 0 && s=="def");
+		TEST(!res->fetch(4,oss));
+		TEST(i==-1 && r==-1 && t.tm_year == 0 && s=="def" && oss.str()=="");
+		TEST(res->has_next() == cppdb::backend::result::next_row_unknown || res->has_next() == cppdb::backend::result::next_row_exists);
+		TEST(res->next());
+		TEST(res->fetch(0,i));
+		TEST(res->fetch(1,r));
+		TEST(res->fetch(2,t));
+		TEST(res->fetch(3,s));
+		if(sql->driver()!="odbc") 
+			TEST(res->fetch(4,oss));
+		TEST(!res->is_null(0));
+		TEST(!res->is_null(1));
+		TEST(!res->is_null(2));
+		TEST(!res->is_null(3));
+		if(sql->driver()!="odbc") 
+			TEST(!res->is_null(4));
+		TEST(i==10);
+		TEST(3.1399 <= r && r <= 3.1401);
+		TEST(mktime(&t)==now);
+		TEST(s=="to be or not to be");
+		if(sql->driver()!="odbc") 
+			TEST(oss.str() == std::string("\xFF\0\xFE\1\2",5));
+		TEST(res->has_next() == cppdb::backend::result::next_row_unknown || res->has_next() == cppdb::backend::result::last_row_reached);
 		TEST(!res->next());
 	}
 	stmt = sql->prepare("DELETE FROM test where 1<>0");
 	stmt->exec();
-	TEST(stmt->affected()==1);
+	TEST(stmt->affected()==2);
 	sql->begin();
 	stmt = sql->prepare("insert into test(i) values(10)");
 	stmt->exec();

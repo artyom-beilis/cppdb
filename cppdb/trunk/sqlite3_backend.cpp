@@ -21,6 +21,7 @@ namespace cppdb {
 				conn_(conn),
 				cols_(-1)
 			{
+				cols_=sqlite3_column_count(st_);
 			}
 			virtual ~result() 
 			{
@@ -38,8 +39,6 @@ namespace cppdb {
 				if(r!=SQLITE_ROW) {
 					throw cppdb_error(std::string("sqlite3:") + sqlite3_errmsg(conn_));
 				}
-				if(cols_==-1)
-					cols_=sqlite3_column_count(st_);
 				return true;
 			}
 			template<typename T>
