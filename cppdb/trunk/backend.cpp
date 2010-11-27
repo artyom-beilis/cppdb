@@ -116,6 +116,7 @@ namespace cppdb {
 				delete p_in;
 			}
 			ref_ptr<statement> p(p_in);
+			p->reset();
 			d->insert(p);
 		}
 		ref_ptr<statement> statements_cache::fetch(std::string const &q)

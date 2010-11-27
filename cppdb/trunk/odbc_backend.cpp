@@ -21,6 +21,7 @@ typedef unsigned short odbc_u16;
 
 int assert_on_unsigned_is_32[sizeof(unsigned) == 4 ? 1 : -1];
 int assert_on_unsigned_short_is_16[sizeof(unsigned short) == 2 ? 1 : -1];
+int assert_on_sqlwchar_is_16[sizeof(SQLWCHAR) == 2 ? 1 : -1];
 
 
 
@@ -634,7 +635,13 @@ public:
 	{
 		SQLFreeStmt(stmt_,SQL_UNBIND);
 		SQLCloseCursor(stmt_);
-		params_.resize(0);
+		if(params_no_ < 0)
+			params_.resize(0);
+		else {
+			params_.resize(0);
+			params_.resize(params_no_);
+		}
+
 	}
 	parameter &param_at(int col)
 	{
@@ -771,13 +778,50 @@ public:
 		check_error(r);
 		int cols = ocols;
 
+		std::vector<std::string> names(cols);
+		std::vector<int> types(cols,SQL_C_CHAR);
+
+		for(int col=0;col < cols;col++) {
+			SQLSMALLINT name_length=0,data_type=0,digits=0,nullable=0;
+			SQLULEN collen = 0;
+
+			if(wide_) {
+				SQLWCHAR name[257] = {0};
+				r=SQLDescribeColW(stmt_,col+1,name,256,&name_length,&data_type,&collen,&digits,&nullable);
+				check_error(r);
+				names[col]=narrower(name);
+			}
+			else {
+				SQLCHAR name[257] = {0};
+				r=SQLDescribeColA(stmt_,col+1,name,256,&name_length,&data_type,&collen,&digits,&nullable);
+				check_error(r);
+				names[col]=(char*)name;
+			}
+			if(wide_) {
+				switch(data_type) {
+				case SQL_CHAR:
+				case SQL_VARCHAR:
+				case SQL_LONGVARCHAR:
+				case SQL_WCHAR:
+				case SQL_WVARCHAR:
+				case SQL_WLONGVARCHAR:
+					types[col]=SQL_C_WCHAR ;
+					break;
+				default:
+					;
+				}
+			}
+		}
+
+
+
 		while((r=SQLFetch(stmt_))==SQL_SUCCESS || r==SQL_SUCCESS_WITH_INFO) {
 			row.resize(cols);
 			for(int col=0;col < cols;col++) {
 				SQLLEN len = 0;
 				value.clear();
 				is_null=false;
-				int type = wide_ ? SQL_C_WCHAR : SQL_C_CHAR;
+				int type = types[col];
 				int r = SQLGetData(stmt_,col+1,type,buf,sizeof(buf),&len);
 				
 				if(r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO) {
@@ -820,7 +864,7 @@ public:
 					check_error(r);
 				}
 				row[col].first = is_null;
-				if(wide_) {
+				if(types[col] == SQL_C_WCHAR) {
 					std::string tmp=narrower(value);
 					value.swap(tmp);
 				}
@@ -838,7 +882,8 @@ public:
 	{
 		bind_all();
 		int r=SQLExecute(stmt_);
-		check_error(r);
+		if(r!=SQL_NO_DATA)
+			check_error(r);
 	}
 	// End of API
 
@@ -944,7 +989,6 @@ public:
 							SQL_NTS,0,0,0,SQL_DRIVER_COMPLETE);
 			}
 			check_odbc_error(r,dbc_,SQL_HANDLE_DBC,wide_);
-			set_autocommit(true);
 		}
 		catch(...) {
 			if(dbc_connected)
@@ -996,12 +1040,10 @@ public:
 		try {
 			SQLRETURN r = SQLEndTran(SQL_HANDLE_DBC,dbc_,SQL_ROLLBACK);
 			check_odbc_error(r,dbc_,SQL_HANDLE_DBC,wide_);
-		}
-		catch(...) {}
+		}catch(...) {}
 		try {
 			set_autocommit(true);
-		}
-		catch(...) {}
+		}catch(...){}
 	}
 	virtual statement *real_prepare(std::string const &q)
 	{
