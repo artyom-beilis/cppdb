@@ -12,7 +12,7 @@
 #include <iostream>
 
 namespace cppdb {
-	namespace postgres {
+	namespace postgresql {
 		
 		class result : public backend::result {
 		public:
@@ -520,11 +520,11 @@ namespace cppdb {
 			}
 			virtual std::string driver()
 			{
-				return "postgres";
+				return "postgresql";
 			}
 			virtual std::string engine()
 			{
-				return "postgres";
+				return "postgresql";
 			}
 		private:
 			PGconn *conn_;
@@ -536,8 +536,8 @@ namespace cppdb {
 
 
 extern "C" {
-	cppdb::backend::connection *cppdb_postgres_get_connection(cppdb::connection_info const &cs)
+	cppdb::backend::connection *cppdb_postgresql_get_connection(cppdb::connection_info const &cs)
 	{
-		return new cppdb::postgres::connection(cs);
+		return new cppdb::postgresql::connection(cs);
 	}
 }
