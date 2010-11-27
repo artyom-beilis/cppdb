@@ -492,17 +492,23 @@ public:
 	{
 		return cols_;
 	}
-	virtual int name_to_column(std::string const &) 
+	virtual int name_to_column(std::string const &cn) 
 	{
-		throw not_supported_by_backend("not supported for now");
+		for(unsigned i=0;i<names_.size();i++)
+			if(names_[i]==cn)
+				return i;
+		return -1;
 	}
-	virtual std::string column_to_name(int) 
+	virtual std::string column_to_name(int c) 
 	{
-		throw not_supported_by_backend("not supported for now");
+		if(c < 0 || c >= int(names_.size()))
+			throw invalid_column();
+		return names_[c];
 	}
 	
-	result(rows_type &rows,int cols) : cols_(cols)
+	result(rows_type &rows,std::vector<std::string> &names,int cols) : cols_(cols)
 	{
+		names_.swap(names);
 		rows_.swap(rows);
 		started_ = false;
 		current_ = rows_.end();
@@ -516,6 +522,7 @@ public:
 private:
 	int cols_;
 	bool started_;
+	std::vector<std::string> names_;
 	rows_type::iterator current_;
 	rows_type rows_;
 };
@@ -531,6 +538,13 @@ class statement : public backend::statement {
 			ctype(SQL_C_CHAR),
 			sqltype(SQL_C_NUMERIC)
 		{
+		}
+		void set_binary(char const *b,char const *e)
+		{
+			value.assign(b,e-b);
+			null=false;
+			ctype=SQL_C_BINARY;
+			sqltype = SQL_LONGVARBINARY;
 		}
 		void set(char const *b,char const *e,bool wide,int sqt)
 		{
@@ -681,7 +695,8 @@ public:
 	{
 		std::ostringstream ss;
 		ss << in.rdbuf();
-		bind(col,ss.str());
+		std::string s = ss.str();
+		param_at(col).set_binary(s.c_str(),s.c_str()+s.size());
 	}
 	template<typename T>
 	void do_bind_num(int col,T v)
@@ -805,6 +820,9 @@ public:
 				case SQL_WCHAR:
 				case SQL_WVARCHAR:
 				case SQL_WLONGVARCHAR:
+				case SQL_BINARY:
+				case SQL_VARBINARY:
+				case SQL_LONGVARBINARY:
 					types[col]=SQL_C_WCHAR ;
 					break;
 				default:
@@ -876,7 +894,7 @@ public:
 		if(r!=SQL_NO_DATA) {
 			check_error(r);
 		}
-		return new result(rows,cols);
+		return new result(rows,names,cols);
 	}
 	virtual void exec()
 	{
