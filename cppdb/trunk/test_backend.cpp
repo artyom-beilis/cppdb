@@ -12,7 +12,12 @@ extern "C" {
 
 using namespace std;
 
-#define TEST(x) do { if(x) break; std::ostringstream ss; ss<<"Failed in " << __LINE__ <<' '<< #x; throw std::runtime_error(ss.str()); } while(0)
+static const bool test_odbc_blob = false;
+
+int passed = 0;
+int failed = 0;
+
+#define TEST(x) do { if(x) { passed ++; break; } failed++; std::cerr<<"Failed in " << __LINE__ <<' '<< #x << std::endl; } while(0)
 
 
 void test(std::string conn_str)
@@ -138,7 +143,7 @@ void test(std::string conn_str)
 	stmt->bind(4,"to be or not to be");
 	std::istringstream iss;
 	iss.str(std::string("\xFF\0\xFE\1\2",5));
-	if(sql->driver()!="odbc") 
+	if(sql->driver()!="odbc" || test_odbc_blob) 
 		stmt->bind(5,iss);
 	else
 		stmt->bind_null(5);
@@ -181,19 +186,19 @@ void test(std::string conn_str)
 		TEST(res->fetch(1,r));
 		TEST(res->fetch(2,t));
 		TEST(res->fetch(3,s));
-		if(sql->driver()!="odbc") 
+		if(sql->driver()!="odbc" || test_odbc_blob) 
 			TEST(res->fetch(4,oss));
 		TEST(!res->is_null(0));
 		TEST(!res->is_null(1));
 		TEST(!res->is_null(2));
 		TEST(!res->is_null(3));
-		if(sql->driver()!="odbc") 
+		if(sql->driver()!="odbc" || test_odbc_blob) 
 			TEST(!res->is_null(4));
 		TEST(i==10);
 		TEST(3.1399 <= r && r <= 3.1401);
 		TEST(mktime(&t)==now);
 		TEST(s=="to be or not to be");
-		if(sql->driver()!="odbc") 
+		if(sql->driver()!="odbc" || test_odbc_blob) 
 			TEST(oss.str() == std::string("\xFF\0\xFE\1\2",5));
 		TEST(res->has_next() == cppdb::backend::result::next_row_unknown || res->has_next() == cppdb::backend::result::last_row_reached);
 		TEST(!res->next());
@@ -239,11 +244,16 @@ int main(int argc,char **argv)
 	std::string cs = argv[1];
 	try {
 		test(cs);
-		std::cout << "Ok" << std::endl;
 	}
 	catch(std::exception const &e) {
 		std::cerr << "Fail " << e.what() << std::endl;
 		return 1;
 	}
+	std::cout << "Tests: " << passed+failed << " failed: " << failed << std::endl;
+	if(failed > 0) {
+		std::cout << "Fail!" << std::endl;
+		return 1;
+	}
+	std::cout << "Ok" << std::endl;
 	return 0;
 }
