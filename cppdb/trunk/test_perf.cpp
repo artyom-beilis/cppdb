@@ -14,7 +14,10 @@ int main(int argc,char **argv)
 
 		try { sql << "DROP TABLE test" << cppdb::exec; } catch(...) {}
 
-		sql << "create table test ( id integer primary key, val varchar(100))" << cppdb::exec;
+		if(sql.engine() == "mysql")
+			sql << "create table test ( id integer primary key, val varchar(100)) Engine=innodb" << cppdb::exec;
+		else
+			sql << "create table test ( id integer primary key, val varchar(100))" << cppdb::exec;
 		
 		{
 			cppdb::transaction tr(sql);

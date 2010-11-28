@@ -1,37 +1,128 @@
 #include <mysql/mysql.h>
 
+#include "backend.h"
+#include "errors.h"
+#include "utils.h"
+#include <sstream>
+#include <vector>
+#include <limits>
+#include <iomanip>
+#include <stdlib.h>
+#include <string.h>
+
+
 namespace cppdb {
 
 namespace mysql_backend {	
 
 class cppdb_myerror : public cppdb_error 
 {
-	cppdb_error(std::string const &str) : 
-		cppdb_myerror("cppdb::mysql::" + str);
+public:
+	cppdb_myerror(std::string const &str) : 
+		cppdb_error("cppdb::mysql::" + str)
 	{
 	}
 };
 
 class result : public backend::result {
+	struct bind_data {
+		bind_data() :
+			ptr(0),
+			length(0),
+			is_null(0),
+			error(0)
+		{
+			memset(&buf,0,sizeof(buf));
+		}
+		char buf[128];
+		std::vector<char> vbuf;
+		char *ptr;
+		unsigned long length;
+		my_bool is_null;
+		my_bool error;
+	};
 public:
 
 	///
 	/// Check if the next row in the result exists. If the DB engine can't perform
 	/// this check without loosing data for current row, it should return next_row_unknown.
 	///
-	virtual next_row has_next() = 0;
+	virtual next_row has_next() 
+	{
+		return next_row_unknown;
+	}
 	///
 	/// Move to next row. Should be called before first access to any of members. If no rows remain
 	/// return false, otherwise return true
 	///
-	virtual bool next() = 0;
+	virtual bool next() 
+	{
+		reset();
+		if(cols_ > 0) {
+			if(mysql_stmt_bind_result(stmt_,&bind_[0])) {
+				throw cppdb_myerror(mysql_stmt_error(stmt_));
+			}
+		}
+		if(first_time_) {
+			if(mysql_stmt_store_result(stmt_)) {
+				throw cppdb_myerror(mysql_stmt_error(stmt_));
+			}
+			first_time_=false;
+		}
+		int r = mysql_stmt_fetch(stmt_);
+		if(r==MYSQL_NO_DATA) { 
+			return false;
+		}
+		if(r==MYSQL_DATA_TRUNCATED) {
+			for(int i=0;i<cols_;i++) {
+				if(bind_data_[i].error && !bind_data_[i].is_null && bind_data_[i].length >= sizeof(bind_data_[i].buf)) {
+					bind_data_[i].vbuf.resize(bind_data_[i].length);
+					MYSQL_BIND b=MYSQL_BIND();
+					bind_[i].buffer = &bind_data_[i].vbuf.front();
+					bind_[i].buffer_length = bind_data_[i].length;
+					if(mysql_stmt_fetch_column(stmt_,&bind_[i],i,0)) {
+						throw cppdb_myerror(mysql_stmt_error(stmt_));
+					}
+					bind_data_[i].ptr = &bind_data_[i].vbuf.front();
+				}
+			}
+		}
+		return true;
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	///
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,short &v) = 0;
+	bind_data &at(int col)
+	{
+		if(col < 0 || col >= cols_)
+			throw invalid_column();
+		if(bind_data_.empty())
+			throw cppdb_myerror("Attempt to access data without fetching it first");
+		return bind_data_.at(col);
+	}
+
+	template<typename T>
+	bool do_fetch(int col,T &v)
+	{
+		bind_data &d=at(col);
+		if(d.is_null)
+			return false;
+
+		std::istringstream ss;
+		ss.imbue(std::locale::classic());
+		ss.str(std::string(d.ptr,d.length));
+		ss >> v;
+		if(!ss || !ss.eof())
+			throw bad_value_cast();
+		return true;
+	}
+	virtual bool fetch(int col,short &v) 
+	{
+		return do_fetch(col,v);;
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -39,7 +130,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,unsigned short &v) = 0;
+	virtual bool fetch(int col,unsigned short &v) 
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -47,7 +141,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,int &v) = 0;
+	virtual bool fetch(int col,int &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -55,7 +152,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,unsigned &v) = 0;
+	virtual bool fetch(int col,unsigned &v) 
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -63,7 +163,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,long &v) = 0;
+	virtual bool fetch(int col,long &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -71,7 +174,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,unsigned long &v) = 0;
+	virtual bool fetch(int col,unsigned long &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -79,7 +185,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,long long &v) = 0;
+	virtual bool fetch(int col,long long &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch an integer value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -87,7 +196,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to integer or its range is not supported by the integer type.
 	///
-	virtual bool fetch(int col,unsigned long long &v) = 0;
+	virtual bool fetch(int col,unsigned long long &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch a floating point value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -95,7 +207,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to floating point value.
 	///
-	virtual bool fetch(int col,float &v) = 0;
+	virtual bool fetch(int col,float &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch a floating point value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -103,7 +218,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to floating point value.
 	///
-	virtual bool fetch(int col,double &v) = 0;
+	virtual bool fetch(int col,double &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch a floating point value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -111,7 +229,10 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, should throw bad_value_cast() if the underlying data
 	/// can't be converted to floating point value.
 	///
-	virtual bool fetch(int col,long double &v) = 0;
+	virtual bool fetch(int col,long double &v)
+	{
+		return do_fetch(col,v);
+	}
 	///
 	/// Fetch a string value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -119,7 +240,14 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, any data should be convertible to
 	/// text value (as formatting integer, floating point value or date-time as string).
 	///
-	virtual bool fetch(int col,std::string &v) = 0;
+	virtual bool fetch(int col,std::string &v)
+	{
+		bind_data &d=at(col);
+		if(d.is_null)
+			return false;
+		v.assign(d.ptr,d.length);
+		return true;
+	}
 	///
 	/// Fetch a BLOB value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -127,7 +255,14 @@ public:
 	/// Should throw invalid_column() \a col value is invalid, any data should be convertible to
 	/// BLOB value as text (as formatting integer, floating point value or date-time as string).
 	///
-	virtual bool fetch(int col,std::ostream &v) = 0;
+	virtual bool fetch(int col,std::ostream &v)
+	{
+		bind_data &d=at(col);
+		if(d.is_null)
+			return false;
+		v.write(d.ptr,d.length);
+		return true;
+	}
 	///
 	/// Fetch a date-time value for column \a col starting from 0.
 	/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
@@ -135,248 +270,109 @@ public:
 	/// Should throw invalid_column() \a col value is invalid. If the data can't be converted
 	/// to date-time it should throw bad_value_cast()
 	///
-	virtual bool fetch(int col,std::tm &v) = 0;
+	virtual bool fetch(int col,std::tm &v) 
+	{
+		std::string tmp;
+		if(!fetch(col,tmp))
+			return false;
+		v = parse_time(tmp);
+		return true;
+	}
 	///
 	/// Check if the column \a col is NULL starting from 0, should throw invalid_column() if the index out of range
 	///
-	virtual bool is_null(int col) = 0;
+	virtual bool is_null(int col) 
+	{
+		return at(col).is_null;
+	}
 	///
 	/// Return the number of columns in the result. Should be valid even without calling next() first time.
 	///
-	virtual int cols() = 0;
-	///
-	/// Return the number of columns by its name. Return -1 if the name is invalid
-	/// Should be able to work even without calling next() first time.
-	///
-	virtual int name_to_column(std::string const &) = 0;
-	///
-	/// Return the column name for column index starting from 0.
-	/// Should throw invalid_column() if the index out of range
-	/// Should be able to work even without calling next() first time.
-	///
-	virtual std::string column_to_name(int) = 0;
-
-	// End of API
-	
-	result();
-	virtual ~result();
-private:
-	struct data;
-	std::auto_ptr<data> d;
-};
-
-class statements_cache;
-
-class statement : public ref_counted {
-public:
-	// Begin of API
-	///
-	/// Reset the prepared statement to initial state as before the operation. It is
-	/// called by front-end each time before new query() or exec() are called.
-	///
-	virtual void reset() = 0;
-	///
-	/// Get the query the statement works with. Return it as is, used as key for statement
-	/// caching 
-	///
-	virtual std::string const &sql_query() = 0;
-
-	///
-	/// Bind a text value to column \a col (starting from 1). You may assume
-	/// that the reference remains valid until real call of query() or exec()
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,std::string const &) = 0;
-	///
-	/// Bind a text value to column \a col (starting from 1). You may assume
-	/// that the reference remains valid until real call of query() or exec()
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,char const *s) = 0;
-	///
-	/// Bind a text value to column \a col (starting from 1). You may assume
-	/// that the reference remains valid until real call of query() or exec()
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,char const *b,char const *e) = 0;
-	///
-	/// Bind a date-time value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,std::tm const &) = 0;
-	///
-	/// Bind a BLOB value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,std::istream const &) = 0;
-	///
-	/// Bind an integer value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,int v) = 0;
-	///
-	/// Bind an integer value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	/// May throw bad_value_cast() if the value out of supported range by the DB. 
-	///
-	virtual void bind(int col,unsigned v) = 0;
-	///
-	/// Bind an integer value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	/// May throw bad_value_cast() if the value out of supported range by the DB. 
-	///
-	virtual void bind(int col,long v) = 0;
-	///
-	/// Bind an integer value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	/// May throw bad_value_cast() if the value out of supported range by the DB. 
-	///
-	virtual void bind(int col,unsigned long v) = 0;
-	///
-	/// Bind an integer value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	/// May throw bad_value_cast() if the value out of supported range by the DB. 
-	///
-	virtual void bind(int col,long long v) = 0;
-	///
-	/// Bind an integer value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	/// May throw bad_value_cast() if the value out of supported range by the DB. 
-	///
-	virtual void bind(int col,unsigned long long v) = 0;
-	///
-	/// Bind a floating point value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,double v) = 0;
-	///
-	/// Bind a floating point value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind(int col,long double v) = 0;
-	///
-	/// Bind a NULL value to column \a col (starting from 1).
-	///
-	/// Should throw invalid_placeholder() if the value of col is out of range. May
-	/// ignore if it is impossible to know whether the placeholder exists without special
-	/// support from back-end.
-	///
-	virtual void bind_null(int col) = 0;
-	///
-	/// Fetch the last sequence generated for last inserted row. May use sequence as parameter
-	/// if the database uses sequences, should ignore the parameter \a sequence if the last
-	/// id is fetched without parameter.
-	///
-	/// Should be called after exec() for insert statement, otherwise the behavior is undefined.
-	///
-	/// MUST throw not_supported_by_backend() if such option is not supported by the DB engine.
-	///
-	virtual long long sequence_last(std::string const &/*sequence*/) 
+	virtual int cols() 
 	{
-		return mysql_stmt_insert_id(stmt_);
+		return cols_;
 	}
-	///
-	/// Return the number of affected rows by last statement.
-	///
-	/// Should be called after exec(), otherwise behavior is undefined.
-	///
-	virtual unsigned long long affected()
+	void get_meta()
 	{
-		return mysql_stmt_affected_rows(stmt_);
-	}
-	///
-	/// Return SQL Query result, MAY throw cppdb_error if the statement is not a query
-	///
-	virtual result *query() = 0;
-	///
-	/// Execute a statement, MAY throw cppdb_error if the statement returns results.
-	///
-	virtual void exec() = 0;
-	// End of API
-
-	// Caching support
-	
-	statement(std::string const &q,MYSQL *conn) :
-		query_(q),
-		stmt_(0),
-		params_count_(0),
-	{
-		stmt_ = mysql_stmt_init(conn);
+		if(meta_fetched_) 
+			return;
+		MYSQL_RES *res = mysql_stmt_result_metadata(stmt_);
+		if(!res) {
+			throw cppdb_myerror(mysql_stmt_error(stmt_));
+		}
 		try {
-			if(!stmt_) {
-				throw cppdb_myerror(" Failed to create a statement");
+			int n = mysql_num_fields(res);
+			if(n!=cols_) {
+				throw cppdb_myerror("Internal error metadata size and result size is not same");
 			}
-			if(!mysql_stmt_prepare(stmt_,q.c_str(),q.size())) {
-				throw cppdb_myerror(mysql_stmt_error(stmt_));
+			MYSQL_FIELD *flds=mysql_fetch_fields(res);
+			if(!flds) {
+				throw cppdb_myerror("Internal error empty fileds");
 			}
-			params_count_ = mysql_stmt_param_count(stmt_);
+			col_to_name_.resize(cols_);
+			for(int i=0;i<cols_;i++) {
+				col_to_name_[i]=flds[i].name;
+				name_to_col_[flds[i].name]=i;
+			}
 		}
 		catch(...) {
-			if(stmt_)
-				mysql_stmt_close(stmt_);
+			mysql_free_result(res);
 			throw;
 		}
+		mysql_free_result(res);
+		meta_fetched_=true;
 	}
-	virtual ~statement()
+	virtual std::string column_to_name(int col) 
 	{
-		mysql_stmt_close(stmt_);
+		get_meta();
+		if(col < 0 || col >=cols_)
+			throw invalid_column();
+		return col_to_name_[col];
+	}
+	virtual int name_to_column(std::string const &name) 
+	{
+		get_meta();
+		std::map<std::string,int>::iterator p=name_to_col_.find(name);
+		if(p!=name_to_col_.end())
+			return p->second;
+		return -1;
+	}
+
+	// End of API
+	
+	result(MYSQL_STMT *stmt) : 
+		stmt_(stmt), meta_fetched_(false), first_time_(false)
+	{
+		cols_ = mysql_stmt_field_count(stmt_);
 	}
 	void reset()
 	{
-		params_.resize(0);
-		params_.resize(params_count_);
 		bind_.resize(0);
-		bind_.resize(params_count_,MYSQL_BIND());
-		for(int i=0;i<params_count_;i++) 
-			bind_[i].is_null_= &is_null_[i];
-
+		bind_data_.resize(0);
+		bind_.resize(cols_,MYSQL_BIND());
+		bind_data_.resize(cols_,bind_data());
+		for(int i=0;i<cols_;i++) {
+			bind_[i].buffer_type = MYSQL_TYPE_STRING;
+			bind_[i].buffer = bind_data_[i].buf;
+			bind_[i].buffer_length = sizeof(bind_data_[i].buf);
+			bind_[i].length = &bind_data_[i].length;
+			bind_[i].is_null = &bind_data_[i].is_null;
+			bind_[i].error = &bind_data_[i].error;
+			bind_data_[i].ptr = bind_data_[i].buf;
+		}
 	}
-
 private:
+	int cols_;
+	MYSQL_STMT *stmt_;
+	bool meta_fetched_;
+	bool first_time_;
+	std::vector<MYSQL_BIND> bind_;
+	std::vector<bind_data> bind_data_;
+	std::vector<std::string> col_to_name_;
+	std::map<std::string,int> name_to_col_;
+};
+
+class statement : public backend::statement {
 	struct param {
 		my_bool is_null;
 		bool is_blob;
@@ -400,27 +396,23 @@ private:
 			ss << v;
 			set_str(ss.str());
 		}
-		void set(char const *b,char const *e,bool blob)
+		void set(char const *b,char const *e,bool blob=false)
 		{
 			length = e - b;
-			buffer = b;
+			buffer = const_cast<char *>(b);
 			is_blob = blob;
+			is_null = 0;
 		}
 		void set_str(std::string const &s)
 		{
 			value = s;
-			buffer = value.c_str();
+			buffer = const_cast<char *>(value.c_str());
 			length = value.size();
+			is_null = 0;
 		}
 		void set(std::tm const &t)
 		{
 			set_str(format_time(t));
-		}
-		void set(std::istream &in)
-		{
-			std::istringstream ss;
-			ss << in.rdbuf();
-			set_str(ss.str());
 		}
 		void bind_it(MYSQL_BIND *b) 
 		{
@@ -437,6 +429,294 @@ private:
 		}
 	};
 
+public:
+	// Begin of API
+	///
+	/// Get the query the statement works with. Return it as is, used as key for statement
+	/// caching 
+	///
+	virtual std::string const &sql_query() 
+	{
+		return query_;
+	}
+
+	///
+	/// Bind a text value to column \a col (starting from 1). You may assume
+	/// that the reference remains valid until real call of query() or exec()
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,std::string const &s)
+	{
+		at(col).set(s.c_str(),s.c_str()+s.size());
+	}
+	///
+	/// Bind a text value to column \a col (starting from 1). You may assume
+	/// that the reference remains valid until real call of query() or exec()
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,char const *s)
+	{
+		at(col).set(s,s+strlen(s));
+	}
+	///
+	/// Bind a text value to column \a col (starting from 1). You may assume
+	/// that the reference remains valid until real call of query() or exec()
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,char const *b,char const *e) 
+	{
+		at(col).set(b,e);
+	}
+	///
+	/// Bind a date-time value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,std::tm const &v) 
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind a BLOB value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,std::istream const &v)
+	{
+		std::ostringstream ss;
+		ss << v.rdbuf();
+		at(col).set_str(ss.str());
+		at(col).is_blob = true;
+	}
+	///
+	/// Bind an integer value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,int v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind an integer value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	/// May throw bad_value_cast() if the value out of supported range by the DB. 
+	///
+	virtual void bind(int col,unsigned v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind an integer value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	/// May throw bad_value_cast() if the value out of supported range by the DB. 
+	///
+	virtual void bind(int col,long v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind an integer value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	/// May throw bad_value_cast() if the value out of supported range by the DB. 
+	///
+	virtual void bind(int col,unsigned long v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind an integer value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	/// May throw bad_value_cast() if the value out of supported range by the DB. 
+	///
+	virtual void bind(int col,long long v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind an integer value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	/// May throw bad_value_cast() if the value out of supported range by the DB. 
+	///
+	virtual void bind(int col,unsigned long long v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind a floating point value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,double v) 
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind a floating point value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind(int col,long double v)
+	{
+		at(col).set(v);
+	}
+	///
+	/// Bind a NULL value to column \a col (starting from 1).
+	///
+	/// Should throw invalid_placeholder() if the value of col is out of range. May
+	/// ignore if it is impossible to know whether the placeholder exists without special
+	/// support from back-end.
+	///
+	virtual void bind_null(int col)
+	{
+		at(col)=param();
+	}
+	///
+	/// Fetch the last sequence generated for last inserted row. May use sequence as parameter
+	/// if the database uses sequences, should ignore the parameter \a sequence if the last
+	/// id is fetched without parameter.
+	///
+	/// Should be called after exec() for insert statement, otherwise the behavior is undefined.
+	///
+	/// MUST throw not_supported_by_backend() if such option is not supported by the DB engine.
+	///
+	virtual long long sequence_last(std::string const &/*sequence*/) 
+	{
+		return mysql_stmt_insert_id(stmt_);
+	}
+	///
+	/// Return the number of affected rows by last statement.
+	///
+	/// Should be called after exec(), otherwise behavior is undefined.
+	///
+	virtual unsigned long long affected()
+	{
+		return mysql_stmt_affected_rows(stmt_);
+	}
+	
+	void bind_all()
+	{
+		if(!params_.empty()) {
+			for(unsigned i=0;i<params_.size();i++)
+				params_[i].bind_it(&bind_[i]);
+			if(mysql_stmt_bind_param(stmt_,&bind_.front())) {
+				throw cppdb_myerror(mysql_stmt_error(stmt_));
+			}
+		}
+	}
+
+	///
+	/// Return SQL Query result, MAY throw cppdb_error if the statement is not a query
+	///
+	virtual result *query() 
+	{
+		bind_all();
+		if(mysql_stmt_execute(stmt_)) {
+			throw cppdb_myerror(mysql_stmt_error(stmt_));
+		}
+		return new result(stmt_);
+	}
+	///
+	/// Execute a statement, MAY throw cppdb_error if the statement returns results.
+	///
+	virtual void exec() 
+	{
+		bind_all();
+		if(mysql_stmt_execute(stmt_)) {
+			throw cppdb_myerror(mysql_stmt_error(stmt_));
+		}
+	}
+	// End of API
+
+	// Caching support
+	
+	statement(std::string const &q,MYSQL *conn) :
+		query_(q),
+		stmt_(0),
+		params_count_(0)
+	{
+		stmt_ = mysql_stmt_init(conn);
+		try {
+			if(!stmt_) {
+				throw cppdb_myerror(" Failed to create a statement");
+			}
+			if(mysql_stmt_prepare(stmt_,q.c_str(),q.size())) {
+				throw cppdb_myerror(mysql_stmt_error(stmt_));
+			}
+			params_count_ = mysql_stmt_param_count(stmt_);
+			reset_data();
+		}
+		catch(...) {
+			if(stmt_)
+				mysql_stmt_close(stmt_);
+			throw;
+		}
+	}
+	virtual ~statement()
+	{
+		mysql_stmt_close(stmt_);
+	}
+	void reset_data()
+	{
+		params_.resize(0);
+		params_.resize(params_count_);
+		bind_.resize(0);
+		bind_.resize(params_count_,MYSQL_BIND());
+	}
+	virtual void reset()
+	{
+		reset_data();
+		mysql_stmt_reset(stmt_);
+	}
+
+private:
+	param &at(int col)
+	{
+		if(col < 1 || col > params_count_)
+			throw invalid_placeholder();
+		return params_[col-1];
+	}
+
+	std::vector<param> params_;
 	std::vector<MYSQL_BIND> bind_;
 	std::string query_;
 	MYSQL_STMT *stmt_;
@@ -447,26 +727,27 @@ class connection;
 
 class connection : public backend::connection {
 public:
-	connection(connection_info const &info) : 
+	connection(connection_info const &ci) : 
+		backend::connection(ci),
 		conn_(0)
 	{
 		conn_ = mysql_init(0);
 		if(!conn_) {
 			throw cppdb_error("cppdb::mysql filed to create connection");
 		}
-		std::string host = ci_.get("host","");
+		std::string host = ci.get("host","");
 		char const *phost = host.empty() ? 0 : host.c_str();
-		std::string user = ci_.get("user","");
+		std::string user = ci.get("user","");
 		char const *puser = user.empty() ? 0 : user.c_str();
-		std::string password = ci_.get("password","");
+		std::string password = ci.get("password","");
 		char const *ppassword = password.empty() ? 0 : password.c_str();
-		std::string database = ci_.get("database","");
+		std::string database = ci.get("database","");
 		char const *pdatabase = database.empty() ? 0 : database.c_str();
-		int port = ci_.get("port",0);
-		std::string unix_socket = ci_.get("unix_socket","");
+		int port = ci.get("port",0);
+		std::string unix_socket = ci.get("unix_socket","");
 		char const *punix_socket = unix_socket.empty() ? 0 : unix_socket.c_str();
 		
-		if(!mysql_real_connect(conn_,)) {
+		if(!mysql_real_connect(conn_,phost,puser,ppassword,pdatabase,port,punix_socket,0)) {
 			std::string err="unknown";
 			try { err = mysql_error(conn_); }catch(...){}
 			mysql_close(conn_);
@@ -482,9 +763,10 @@ public:
 	
 	void exec(std::string const &s) 
 	{
-		if(!mysql_real_query(conn_,"BEGIN",s.size())) {
+		if(mysql_real_query(conn_,s.c_str(),s.size())) {
 			throw cppdb_myerror(mysql_error(conn_));
 		}
+	}
 
 	///
 	/// Start new isolated transaction. Would not be called
@@ -510,13 +792,18 @@ public:
 		try {
 			exec("ROLLBACK");
 		}
-		catch(...) {}
+		catch(...) {
+		}
 	}
 	///
 	/// Create a prepared statement \a q. May throw if preparation had failed.
 	/// Should never return null value.
 	///
-	virtual statement *real_prepare(std::string const &q)
+	virtual statement *prepare_statement(std::string const &q)
+	{
+		return new statement(q,conn_);
+	}
+	virtual statement *create_statement(std::string const &q)
 	{
 		return new statement(q,conn_);
 	}
@@ -572,3 +859,9 @@ private:
 } // backend
 } // cppdb
 
+extern "C" {
+	cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs)
+	{
+		return new cppdb::mysql_backend::connection(cs);
+	}
+}
