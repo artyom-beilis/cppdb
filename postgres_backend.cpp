@@ -357,7 +357,6 @@ namespace cppdb {
 					values.resize(params_,0);
 					lengths.resize(params_,0);
 					formats.resize(params_,0);
-					oids.resize(params_,0);
 					for(unsigned i=0;i<params_;i++) {
 						if(params_set_[i]!=null_param) {
 							values[i]=params_values_[i].c_str();
@@ -490,6 +489,7 @@ namespace cppdb {
 			unsigned params_;
 			std::vector<std::string> params_values_;
 			std::vector<param_type> params_set_;
+			std::string prepared_id_;
 		};
 
 		class connection : public backend::connection {

@@ -649,12 +649,9 @@ public:
 	{
 		SQLFreeStmt(stmt_,SQL_UNBIND);
 		SQLCloseCursor(stmt_);
-		if(params_no_ < 0)
-			params_.resize(0);
-		else {
-			params_.resize(0);
+		params_.resize(0);
+		if(params_no_ > 0)
 			params_.resize(params_no_);
-		}
 
 	}
 	parameter &param_at(int col)
@@ -812,22 +809,23 @@ public:
 				check_error(r);
 				names[col]=(char*)name;
 			}
-			if(wide_) {
-				switch(data_type) {
-				case SQL_CHAR:
-				case SQL_VARCHAR:
-				case SQL_LONGVARCHAR:
-				case SQL_WCHAR:
-				case SQL_WVARCHAR:
-				case SQL_WLONGVARCHAR:
-				case SQL_BINARY:
-				case SQL_VARBINARY:
-				case SQL_LONGVARBINARY:
+			switch(data_type) {
+			case SQL_CHAR:
+			case SQL_VARCHAR:
+			case SQL_LONGVARCHAR:
+			case SQL_WCHAR:
+			case SQL_WVARCHAR:
+			case SQL_WLONGVARCHAR:
+				if(wide_)
 					types[col]=SQL_C_WCHAR ;
-					break;
-				default:
-					;
-				}
+				break;
+			case SQL_BINARY:
+			case SQL_VARBINARY:
+			case SQL_LONGVARBINARY:
+				types[col]=SQL_C_BINARY ;
+				break;
+			default:
+				;
 			}
 		}
 
@@ -946,7 +944,6 @@ public:
 						SQL_NTS);
 				}
 				check_error(r);
-				params_.reserve(100);
 			}
 			catch(...) {
 				SQLFreeHandle(SQL_HANDLE_STMT,stmt_);
@@ -957,6 +954,9 @@ public:
 			check_error(r);
 			params_no_ = params_no;
 			params_.resize(params_no_);
+		}
+		else {
+			params_.reserve(50);
 		}
 	}
 	~statement()
