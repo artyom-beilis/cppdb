@@ -17,6 +17,9 @@ extern "C" {
 	#ifdef CPPDB_WITH_ODBC
 	cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs);
 	#endif
+	#ifdef CPPDB_WITH_MYSQL
+	cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs);
+	#endif
 }
 
 
@@ -225,6 +228,11 @@ namespace cppdb {
 				#ifdef CPPDB_WITH_PQ 
 				driver_manager::instance().install_driver(
 					"postgresql",new static_driver(cppdb_postgresql_get_connection)
+				);
+				#endif
+				#ifdef CPPDB_WITH_MYSQL
+				driver_manager::instance().install_driver(
+					"mysql",new static_driver(cppdb_mysql_get_connection)
 				);
 				#endif
 			}

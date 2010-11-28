@@ -99,7 +99,9 @@ int main(int argc,char **argv)
 		TEST(!res.empty());
 		int val;
 		res >> val;
+		TEST(!res.next());
 		TEST(val == 10);
+
 		cppdb::statement stat = sql<<"delete from test where 1<>0" << cppdb::exec;
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
 		TEST(stat.affected()==2);
