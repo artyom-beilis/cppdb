@@ -180,7 +180,7 @@ namespace cppdb {
 				binary_param
 			} param_type;
 
-			statement(PGconn *conn,std::string const &src_query) :
+			statement(PGconn *conn,std::string const &src_query,unsigned long long prepared_id) :
 				res_(0),
 				conn_(conn),
 				orig_query_(src_query),
@@ -208,11 +208,44 @@ namespace cppdb {
 					}
 				}
 				reset();
+
+				if(prepared_id > 0) {
+
+					ss.str("");
+					ss<<"cppdb_psqlstmt_" << prepared_id;
+					prepared_id_ = ss.str();
+
+					PGresult *r=PQprepare(conn_,prepared_id_.c_str(),query_.c_str(),0,0);
+					if(!r)
+						throw std::bad_alloc();
+					if(PQresultStatus(r)==PGRES_COMMAND_OK) {
+						PQclear(r);
+					}
+					else {
+						std::string e = "unknown error";
+						try { e = PQresultErrorMessage(r); }catch(...){}
+						PQclear(r);
+						throw cppdb_error("cppdb::postgresql::statement " + e);
+					}
+				}
 			}
 			virtual ~statement()
 			{
-				if(res_)
-					PQclear(res_);
+				try {
+					if(res_)
+						PQclear(res_);
+					res_ = 0;
+					if(!prepared_id_.empty()) {
+						std::string stmt = "DEALLOCATE " + prepared_id_;
+						res_ = PQexec(conn_,stmt.c_str());
+						if(res_) 
+							PQclear(res_);
+						res_ = 0;
+					}
+				}
+				catch(...) 
+				{
+				}
 			}
 			virtual void reset()
 			{
@@ -320,7 +353,6 @@ namespace cppdb {
 				std::vector<char const *> values;
 				std::vector<int> lengths;
 				std::vector<int> formats;
-				std::vector<Oid> oids;
 				if(params_>0) {
 					values.resize(params_,0);
 					lengths.resize(params_,0);
@@ -343,16 +375,29 @@ namespace cppdb {
 					PQclear(res_);
 					res_ = 0;
 				}
-				res_ = PQexecParams(
-					conn_,
-					query_.c_str(),
-					params_,
-					0, // param types
-					pvalues,
-					plengths,
-					pformats, // format - text
-					0 // result format - text
-					);
+				if(prepared_id_.empty()) {
+					res_ = PQexecParams(
+						conn_,
+						query_.c_str(),
+						params_,
+						0, // param types
+						pvalues,
+						plengths,
+						pformats, // format - text
+						0 // result format - text
+						);
+				}
+				else {
+					res_ = PQexecPrepared(
+						conn_,
+						prepared_id_.c_str(),
+						params_,
+						pvalues,
+						plengths,
+						pformats, // format - text
+						0 // result format - text
+						);
+				}
 			}
 
 			virtual result *query() 
@@ -476,9 +521,13 @@ namespace cppdb {
 				}
 				catch(...) {}
 			}
-			virtual statement *real_prepare(std::string const &q)
+			virtual statement *prepare_statement(std::string const &q)
 			{
-				return new statement(conn_,q);
+				return new statement(conn_,q,++prepared_id_);
+			}
+			virtual statement *create_statement(std::string const &q)
+			{
+				return new statement(conn_,q,0);
 			}
 			std::string do_escape(char const *b,size_t length)
 			{
@@ -528,7 +577,8 @@ namespace cppdb {
 			}
 			connection(connection_info const &ci) :
 				backend::connection(ci),
-				conn_(0)
+				conn_(0),
+				prepared_id_(0)
 			{
 				std::string pq=pq_string(ci);
 				conn_ = PQconnectdb(pq.c_str());	
@@ -556,6 +606,7 @@ namespace cppdb {
 			}
 		private:
 			PGconn *conn_;
+			unsigned long long prepared_id_;
 		};
 
 

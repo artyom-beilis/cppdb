@@ -433,6 +433,38 @@ namespace cppdb {
 		ref_ptr<backend::connection> conn_;
 	};
 
+	class transaction {
+		transaction(transaction const &);
+		void operator=(transaction const &);
+	public:
+		transaction(session &s) :
+			s_(s),
+			commited_(false)
+		{
+			s_.begin();
+		}
+		
+		void commit()
+		{
+			s_.commit();
+			commited_ =true;
+		}
+		void rollback()
+		{
+			if(!commited_)
+				s_.rollback();
+			commited_=true;
+		}
+		~transaction()
+		{
+			rollback();
+		}
+	private:
+		session &s_;
+		bool commited_;
+	};
+
+
 } // cppdb
 
 #endif

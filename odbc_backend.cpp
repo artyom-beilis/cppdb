@@ -750,11 +750,11 @@ public:
 	{
 		ref_ptr<statement> st;
 		if(!sequence_last_.empty()) {
-			st = new statement(sequence_last_,dbc_,wide_);
+			st = new statement(sequence_last_,dbc_,wide_,false);
 			st->bind(1,sequence);
 		}
 		else if(!last_insert_id_.empty()) {
-			st = new statement(last_insert_id_,dbc_,wide_);
+			st = new statement(last_insert_id_,dbc_,wide_,false);
 		}
 		else {
 			throw not_supported_by_backend(
@@ -781,7 +781,7 @@ public:
 	virtual result *query()
 	{
 		bind_all();
-		int r=SQLExecute(stmt_);
+		int r = real_exec();
 		check_error(r);
 		char buf[1024];
 		result::rows_type rows;
@@ -896,50 +896,68 @@ public:
 		}
 		return new result(rows,names,cols);
 	}
+
+	int real_exec()
+	{
+		int r = 0;
+		if(prepared_) {
+			r=SQLExecute(stmt_);
+		}
+		else {
+			if(wide_)
+				r=SQLExecDirectW(stmt_,(SQLWCHAR*)tosqlwide(query_).c_str(),SQL_NTS);
+			else
+				r=SQLExecDirectA(stmt_,(SQLCHAR*)query_.c_str(),SQL_NTS);
+		}
+		return r;
+	}
 	virtual void exec()
 	{
 		bind_all();
-		int r=SQLExecute(stmt_);
+		int r=real_exec();
 		if(r!=SQL_NO_DATA)
 			check_error(r);
 	}
 	// End of API
 
-	statement(std::string const &q,SQLHDBC dbc,bool wide) :
+	statement(std::string const &q,SQLHDBC dbc,bool wide,bool prepared) :
 		dbc_(dbc),
 		wide_(wide),
 		query_(q),
-		params_no_(-1)
+		params_no_(-1),
+		prepared_(prepared)
 	{
 		bool stmt_created = false;
 		SQLRETURN r = SQLAllocHandle(SQL_HANDLE_STMT,dbc,&stmt_);
 		check_odbc_error(r,dbc,SQL_HANDLE_DBC,wide_);
 		stmt_created = true;
-		try {
-			if(wide_) {
-				r = SQLPrepareW(
-					stmt_,
-					(SQLWCHAR*)tosqlwide(query_).c_str(),
-					SQL_NTS);
+		if(prepared_) {
+			try {
+				if(wide_) {
+					r = SQLPrepareW(
+						stmt_,
+						(SQLWCHAR*)tosqlwide(query_).c_str(),
+						SQL_NTS);
+				}
+				else {
+					r = SQLPrepareA(
+						stmt_,
+						(SQLCHAR*)query_.c_str(),
+						SQL_NTS);
+				}
+				check_error(r);
+				params_.reserve(100);
 			}
-			else {
-				r = SQLPrepareA(
-					stmt_,
-					(SQLCHAR*)query_.c_str(),
-					SQL_NTS);
+			catch(...) {
+				SQLFreeHandle(SQL_HANDLE_STMT,stmt_);
+				throw;
 			}
+			SQLSMALLINT params_no;
+			r = SQLNumParams(stmt_,&params_no);
 			check_error(r);
-			params_.reserve(100);
+			params_no_ = params_no;
+			params_.resize(params_no_);
 		}
-		catch(...) {
-			SQLFreeHandle(SQL_HANDLE_STMT,stmt_);
-			throw;
-		}
-		SQLSMALLINT params_no;
-		r = SQLNumParams(stmt_,&params_no);
-		check_error(r);
-		params_no_ = params_no;
-		params_.resize(params_no_);
 	}
 	~statement()
 	{
@@ -962,6 +980,7 @@ private:
 	friend class connection;
 	std::string sequence_last_;
 	std::string last_insert_id_;
+	bool prepared_;
 
 };
 
@@ -1063,9 +1082,9 @@ public:
 			set_autocommit(true);
 		}catch(...){}
 	}
-	virtual statement *real_prepare(std::string const &q)
+	statement *real_prepare(std::string const &q,bool prepared)
 	{
-		std::auto_ptr<statement> st(new statement(q,dbc_,wide_));
+		std::auto_ptr<statement> st(new statement(q,dbc_,wide_,prepared));
 		std::string seq = ci_.get("@sequence_last","");
 		if(seq.empty()) {
 			std::string eng=engine();
@@ -1086,8 +1105,19 @@ public:
 		}
 
 		return st.release();		
-
 	}
+
+	virtual statement *prepare_statement(std::string const &q)
+	{
+		return real_prepare(q,true);
+	}
+
+	virtual statement *create_statement(std::string const &q)
+	{
+		return real_prepare(q,false);
+	}
+
+
 	virtual std::string escape(std::string const &s)
 	{
 		return escape(s.c_str(),s.c_str()+s.size());

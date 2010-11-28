@@ -1,6 +1,7 @@
 #include "backend.h"
 #include "utils.h"
 #include "pool.h"
+#include <iostream>
 #include <map>
 #include <list>
 
@@ -96,6 +97,7 @@ namespace cppdb {
 				st=p->second.stat;
 				lru.erase(p->second.lru_ptr);
 				statements.erase(p);
+				size --;
 				return st;
 			}
 		}; // data
@@ -139,17 +141,30 @@ namespace cppdb {
 		//////////////
 
 		struct connection::data {};
+		ref_ptr<statement> connection::prepare(std::string const &q) 
+		{
+			if(default_is_prepared_)
+				return get_prepared_statement(q);
+			else
+				return get_statement(q);
+		}
+		
+		ref_ptr<statement> connection::get_statement(std::string const &q)
+		{
+			ref_ptr<statement> st = create_statement(q);
+			return st;
+		}
 
-		ref_ptr<statement> connection::prepare(std::string const &q)
+		ref_ptr<statement> connection::get_prepared_statement(std::string const &q)
 		{
 			ref_ptr<statement> st;
 			if(!cache_.active()) {
-				st = real_prepare(q);
+				st = prepare_statement(q);
 				return st;
 			}
 			st = cache_.fetch(q);
 			if(!st)
-				st = real_prepare(q);
+				st = prepare_statement(q);
 			st->cache(&cache_);
 			return st;
 		}
@@ -161,6 +176,13 @@ namespace cppdb {
 			if(cache_size > 0) {
 				cache_.set_size(cache_size);
 			}
+			std::string def_is_prep = info.get("@use_prepared","on");
+			if(def_is_prep == "on")
+				default_is_prepared_ = 1;
+			else if(def_is_prep == "off") 
+				default_is_prepared_ = 0;
+			else
+				throw cppdb_error("cppdb::backend::connection: @use_prepared should be either 'on' or 'off'");
 		}
 		connection::~connection()
 		{
@@ -181,10 +203,9 @@ namespace cppdb {
 				return;
 			ref_ptr<pool> p = c->pool_;
 			c->pool_ = 0;
-			if(p) {
+			if(p)
 				p->put(c);
-			}
-			else
+			else 
 				delete c;
 		}
 		
