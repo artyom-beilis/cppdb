@@ -19,6 +19,7 @@ namespace cppdb {
 			result(sqlite3_stmt *st,sqlite3 *conn) : 
 				st_(st),
 				conn_(conn),
+				column_names_prepared_(false),
 				cols_(-1)
 			{
 				cols_=sqlite3_column_count(st_);
@@ -408,9 +409,13 @@ namespace cppdb {
 			{
 				fast_exec("rollback");
 			}
-			virtual statement *real_prepare(std::string const &q)
+			virtual statement *prepare_statement(std::string const &q)
 			{
 				return new statement(q,conn_);
+			}
+			virtual statement *create_statement(std::string const &q)
+			{
+				return prepare_statement(q);
 			}
 			virtual std::string escape(std::string const &s)
 			{

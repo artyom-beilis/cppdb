@@ -51,7 +51,7 @@ namespace cppdb {
 			std::string symbol_name = "cppdb_" + name + "_get_connection";
 			for(unsigned i=0;i<so_list.size();i++) {
 				so_ = shared_object::open(so_list[i]);
-				if(!so_) {
+				if(so_) {
 					so_->safe_resolve(symbol_name,connect_);
 					break;
 				}

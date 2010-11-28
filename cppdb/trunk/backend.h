@@ -395,6 +395,8 @@ namespace cppdb {
 			void set_driver(ref_ptr<loadable_driver> drv);
 			static void dispose(connection *c);
 			ref_ptr<statement> prepare(std::string const &q);
+			ref_ptr<statement> get_prepared_statement(std::string const &q);
+			ref_ptr<statement> get_statement(std::string const &q);
 
 			// API 
 
@@ -416,7 +418,12 @@ namespace cppdb {
 			/// Create a prepared statement \a q. May throw if preparation had failed.
 			/// Should never return null value.
 			///
-			virtual statement *real_prepare(std::string const &q) = 0;
+			virtual statement *prepare_statement(std::string const &q) = 0;
+			///
+			/// Create a (unprepared) statement \a q. May throw if preparation had failed.
+			/// Should never return null value.
+			///
+			virtual statement *create_statement(std::string const &q) = 0;
 			///
 			/// Escape a string for inclusion in SQL query. May throw not_supported_by_backend() if not supported by backend.
 			///
@@ -447,6 +454,8 @@ namespace cppdb {
 			statements_cache cache_;
 			ref_ptr<loadable_driver> driver_;
 			ref_ptr<pool> pool_;
+			unsigned default_is_prepared_ : 1;
+			unsigned reserverd_ : 31;
 		};
 
 

@@ -125,8 +125,10 @@ if(NOT WIN32)
 	target_link_libraries(cppdb ${DL_LIB})
 endif()
 
+add_executable(test_perf test_perf.cpp)
 add_executable(test_basic test_basic.cpp)
 add_executable(test_backend test_backend.cpp)
 
+target_link_libraries(test_perf cppdb)
 target_link_libraries(test_basic cppdb)
 target_link_libraries(test_backend cppdb)
