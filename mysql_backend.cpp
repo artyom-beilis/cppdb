@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <iostream>
 
 namespace cppdb {
 
@@ -62,12 +63,6 @@ public:
 			if(mysql_stmt_bind_result(stmt_,&bind_[0])) {
 				throw cppdb_myerror(mysql_stmt_error(stmt_));
 			}
-		}
-		if(first_time_) {
-			if(mysql_stmt_store_result(stmt_)) {
-				throw cppdb_myerror(mysql_stmt_error(stmt_));
-			}
-			first_time_=false;
 		}
 		int r = mysql_stmt_fetch(stmt_);
 		if(r==MYSQL_NO_DATA) { 
@@ -341,9 +336,12 @@ public:
 	// End of API
 	
 	result(MYSQL_STMT *stmt) : 
-		stmt_(stmt), meta_fetched_(false), first_time_(false)
+		stmt_(stmt), meta_fetched_(false)
 	{
 		cols_ = mysql_stmt_field_count(stmt_);
+		if(mysql_stmt_store_result(stmt_)) {
+			throw cppdb_myerror(mysql_stmt_error(stmt_));
+		}
 	}
 	void reset()
 	{
@@ -365,7 +363,6 @@ private:
 	int cols_;
 	MYSQL_STMT *stmt_;
 	bool meta_fetched_;
-	bool first_time_;
 	std::vector<MYSQL_BIND> bind_;
 	std::vector<bind_data> bind_data_;
 	std::vector<std::string> col_to_name_;
