@@ -232,15 +232,17 @@ namespace cppdb {
 			virtual ~statement()
 			{
 				try {
-					if(res_)
+					if(res_) {
 						PQclear(res_);
-					res_ = 0;
+						res_ = 0;
+					}
 					if(!prepared_id_.empty()) {
 						std::string stmt = "DEALLOCATE " + prepared_id_;
 						res_ = PQexec(conn_,stmt.c_str());
-						if(res_) 
+						if(res_)  {
 							PQclear(res_);
-						res_ = 0;
+							res_ = 0;
+						}
 					}
 				}
 				catch(...) 

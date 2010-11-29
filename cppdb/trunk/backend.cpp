@@ -127,6 +127,10 @@ namespace cppdb {
 				return 0;
 			return d->fetch(q);
 		}
+		void statements_cache::clear()
+		{
+			d.reset();
+		}
 		statements_cache::~statements_cache()
 		{
 		}
@@ -196,6 +200,10 @@ namespace cppdb {
 		{
 			driver_ = p;
 		}
+		void connection::clear_cache()
+		{
+			cache_.clear();
+		}
 		
 		void connection::dispose(connection *c)
 		{
@@ -205,8 +213,10 @@ namespace cppdb {
 			c->pool_ = 0;
 			if(p)
 				p->put(c);
-			else 
+			else {
+				c->clear_cache();
 				delete c;
+			}
 		}
 		
 		connection *loadable_driver::connect(connection_info const &cs)

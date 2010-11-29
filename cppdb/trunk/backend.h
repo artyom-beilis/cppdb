@@ -360,6 +360,7 @@ namespace cppdb {
 			bool active();
 			void set_size(size_t n);
 			void put(statement *p_in);
+			void clear();
 			ref_ptr<statement> fetch(std::string const &q);
 			~statements_cache();
 		private:
@@ -449,6 +450,8 @@ namespace cppdb {
 			// API
 			
 		private:
+			void clear_cache();
+
 			struct data;
 			std::auto_ptr<data> d;
 			statements_cache cache_;
