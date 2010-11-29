@@ -236,28 +236,34 @@ void test(std::string conn_str)
 	stmt->exec();
 	sql->begin();
 	stmt = sql->prepare("insert into test(i,s) values(?,?)");
-	for(int i=0;i<1100;i++) {
+	int sizes[]={	0, // General 0 length string
+			61,62,63,64,65,66,67, // mysql buffer size
+			1020,1021,1022,1023,1024,1025,1026,1027 // ODBC buffer size
+		    };
+	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
+		int size = sizes[i];
 		std::string value;
-		value.reserve(1100);
+		value.reserve(size);
 		srand(i);
-		for(int j=0;j<i;j++) {
+		for(int j=0;j<size;j++) {
 			value+=char(rand() % 26 + 'a');
 		}
-		stmt->bind(1,i);
+		stmt->bind(1,size);
 		stmt->bind(2,value);
 		stmt->exec();
 		stmt->reset();
 	}
 	sql->commit();
 	stmt = sql->prepare("select s from test where i=?");
-	for(int i=0;i<1100;i++) {
+	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
+		int size = sizes[i];
 		std::string value;
-		value.reserve(1100);
+		value.reserve(size);
 		srand(i);
-		for(int j=0;j<i;j++) {
+		for(int j=0;j<size;j++) {
 			value+=char(rand() % 26 + 'a');
 		}
-		stmt->bind(1,i);
+		stmt->bind(1,size);
 		res = stmt->query();
 		TEST(res->next());
 		std::string v;

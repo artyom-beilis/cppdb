@@ -291,61 +291,45 @@ public:
 	{
 		return cols_;
 	}
-	void get_meta()
-	{
-		if(meta_fetched_) 
-			return;
-		MYSQL_RES *res = mysql_stmt_result_metadata(stmt_);
-		if(!res) {
-			throw cppdb_myerror(mysql_stmt_error(stmt_));
-		}
-		try {
-			int n = mysql_num_fields(res);
-			if(n!=cols_) {
-				throw cppdb_myerror("Internal error metadata size and result size is not same");
-			}
-			MYSQL_FIELD *flds=mysql_fetch_fields(res);
-			if(!flds) {
-				throw cppdb_myerror("Internal error empty fileds");
-			}
-			col_to_name_.resize(cols_);
-			for(int i=0;i<cols_;i++) {
-				col_to_name_[i]=flds[i].name;
-				name_to_col_[flds[i].name]=i;
-			}
-		}
-		catch(...) {
-			mysql_free_result(res);
-			throw;
-		}
-		mysql_free_result(res);
-		meta_fetched_=true;
-	}
 	virtual std::string column_to_name(int col) 
 	{
-		get_meta();
 		if(col < 0 || col >=cols_)
 			throw invalid_column();
-		return col_to_name_[col];
+		MYSQL_FIELD *flds=mysql_fetch_fields(meta_);
+		if(!flds) {
+			throw cppdb_myerror("Internal error empty fileds");
+		}
+		return flds[col].name;
 	}
 	virtual int name_to_column(std::string const &name) 
 	{
-		get_meta();
-		std::map<std::string,int>::iterator p=name_to_col_.find(name);
-		if(p!=name_to_col_.end())
-			return p->second;
+		MYSQL_FIELD *flds=mysql_fetch_fields(meta_);
+		if(!flds) {
+			throw cppdb_myerror("Internal error empty fileds");
+		}
+		for(int i=0;i<cols_;i++)
+			if(name == flds[i].name)
+				return i;
 		return -1;
 	}
 
 	// End of API
 	
 	result(MYSQL_STMT *stmt) : 
-		stmt_(stmt), meta_fetched_(false), current_row_(0)
+		stmt_(stmt), current_row_(0),meta_(0)
 	{
 		cols_ = mysql_stmt_field_count(stmt_);
 		if(mysql_stmt_store_result(stmt_)) {
 			throw cppdb_myerror(mysql_stmt_error(stmt_));
 		}
+		meta_ = mysql_stmt_result_metadata(stmt_);
+		if(!meta_) {
+			throw cppdb_myerror("Seems that the query does not produce any result");
+		}
+	}
+	~result()
+	{
+		mysql_free_result(meta_);
 	}
 	void reset()
 	{
@@ -366,12 +350,10 @@ public:
 private:
 	int cols_;
 	MYSQL_STMT *stmt_;
-	bool meta_fetched_;
 	unsigned current_row_;
+	MYSQL_RES *meta_;
 	std::vector<MYSQL_BIND> bind_;
 	std::vector<bind_data> bind_data_;
-	std::vector<std::string> col_to_name_;
-	std::map<std::string,int> name_to_col_;
 };
 
 class statement : public backend::statement {
@@ -665,6 +647,14 @@ public:
 		bind_all();
 		if(mysql_stmt_execute(stmt_)) {
 			throw cppdb_myerror(mysql_stmt_error(stmt_));
+		}
+		if(mysql_stmt_store_result(stmt_)) {
+			throw cppdb_myerror(mysql_stmt_error(stmt_));
+		}
+		MYSQL_RES *r=mysql_stmt_result_metadata(stmt_);
+		if(r) {
+			mysql_free_result(r);
+			throw cppdb_myerror("Calling exec() on query!");
 		}
 	}
 	// End of API
