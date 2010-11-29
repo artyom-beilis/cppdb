@@ -71,8 +71,6 @@ void test(std::string conn_str)
 	TEST(!res->is_null(0));
 	TEST(res->fetch(0,sv));
 	TEST(sv=="foo");
-	TEST(!res->next());
-	res.reset();
 	stmt = sql->prepare("DELETE FROM test");
 	stmt->exec();
 	if(!(sql->engine()=="mssql" && (conn_str.find("utf=wide")==std::string::npos || conn_str.find("utf=narrow")!=std::string::npos))) {
@@ -87,8 +85,6 @@ void test(std::string conn_str)
 		res->fetch(1,sv);
 		TEST(sv=="שלום");
 	}
-	res.reset();
-	stmt.reset();
 	stmt = sql->prepare("drop table test");
 	stmt->exec();
 	stmt.reset();
@@ -121,13 +117,13 @@ void test(std::string conn_str)
 
 
 	if(sql->engine() == "mssql") 
-		stmt = sql->prepare("create table test ( i integer, r real, t datetime, s varchar(1000), bl varbinary(max))");
+		stmt = sql->prepare("create table test ( i integer, r real, t datetime, s varchar(5000), bl varbinary(max))");
 	else if(sql->engine() == "mysql") 
-		stmt = sql->prepare("create table test ( i integer, r real, t datetime default null, s varchar(1000), bl blob) Engine = innodb");
+		stmt = sql->prepare("create table test ( i integer, r real, t datetime default null, s varchar(5000), bl blob) Engine = innodb");
 	else if(sql->engine() == "postgresql")
-		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(1000), bl bytea)");
+		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl bytea)");
 	else
-		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(1000), bl blob)");
+		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl blob)");
 	stmt->exec();
 	stmt = sql->prepare("insert into test values(?,?,?,?,?)");
 	stmt->bind_null(1);
@@ -236,6 +232,41 @@ void test(std::string conn_str)
 	iv=-1;
 	TEST(res->fetch(0,iv));
 	TEST(iv==0);
+	stmt = sql->prepare("DELETE FROM test where 1<>0");
+	stmt->exec();
+	sql->begin();
+	stmt = sql->prepare("insert into test(i,s) values(?,?)");
+	for(int i=0;i<1100;i++) {
+		std::string value;
+		value.reserve(1100);
+		srand(i);
+		for(int j=0;j<i;j++) {
+			value+=char(rand() % 26 + 'a');
+		}
+		stmt->bind(1,i);
+		stmt->bind(2,value);
+		stmt->exec();
+		stmt->reset();
+	}
+	sql->commit();
+	stmt = sql->prepare("select s from test where i=?");
+	for(int i=0;i<1100;i++) {
+		std::string value;
+		value.reserve(1100);
+		srand(i);
+		for(int j=0;j<i;j++) {
+			value+=char(rand() % 26 + 'a');
+		}
+		stmt->bind(1,i);
+		res = stmt->query();
+		TEST(res->next());
+		std::string v;
+		TEST(res->fetch(0,v));
+		TEST(v==value);
+	}
+	stmt = sql->prepare("DELETE FROM test where 1<>0");
+	stmt->exec();
+	
 }
 
 
