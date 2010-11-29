@@ -27,12 +27,16 @@ int main(int argc,char **argv)
 			tr.commit();
 		}
 
+		time_t start = time(0);
+		
 		for(int j=0;j<max_val * 10;j++) {
 			std::string v;
 			sql << "select val from test where id = ?" << (rand() % max_val)<< cppdb::row >> v;
 			if(v!="Hello World")
 				throw std::runtime_error("Wrong");
 		}
+		time_t stop = time(0);
+		std::cout << "Passed " << stop - start << " seconds" << std::endl;
 	}
 	catch(std::exception const &e) {
 		std::cerr << e.what() << std::endl;

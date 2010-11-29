@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
+#include <stdlib.h>
 
 extern "C" { 
 	cppdb::backend::connection *cppdb_sqlite3_get_connection(); 
@@ -269,6 +270,8 @@ void test(std::string conn_str)
 		std::string v;
 		TEST(res->fetch(0,v));
 		TEST(v==value);
+		res.reset();
+		stmt->reset();
 	}
 	stmt = sql->prepare("DELETE FROM test where 1<>0");
 	stmt->exec();
