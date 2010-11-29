@@ -50,7 +50,10 @@ public:
 	///
 	virtual next_row has_next() 
 	{
-		return next_row_unknown;
+		if(current_row_ >= mysql_stmt_num_rows(stmt_))
+			return last_row_reached;
+		else
+			return next_row_exists;
 	}
 	///
 	/// Move to next row. Should be called before first access to any of members. If no rows remain
@@ -58,6 +61,7 @@ public:
 	///
 	virtual bool next() 
 	{
+		current_row_ ++;
 		reset();
 		if(cols_ > 0) {
 			if(mysql_stmt_bind_result(stmt_,&bind_[0])) {
@@ -336,7 +340,7 @@ public:
 	// End of API
 	
 	result(MYSQL_STMT *stmt) : 
-		stmt_(stmt), meta_fetched_(false)
+		stmt_(stmt), meta_fetched_(false), current_row_(0)
 	{
 		cols_ = mysql_stmt_field_count(stmt_);
 		if(mysql_stmt_store_result(stmt_)) {
@@ -363,6 +367,7 @@ private:
 	int cols_;
 	MYSQL_STMT *stmt_;
 	bool meta_fetched_;
+	unsigned current_row_;
 	std::vector<MYSQL_BIND> bind_;
 	std::vector<bind_data> bind_data_;
 	std::vector<std::string> col_to_name_;
