@@ -36,7 +36,7 @@ void test(std::string conn_str)
 	stmt = sql->prepare("select * from test");
 	res = stmt->query();
 	TEST(!res->next());
-	stmt  = sql->prepare("insert into test(x,y) values(10,'foo')");
+	stmt  = sql->prepare("insert into test(x,y) values(10,'foo?')");
 	stmt->exec();
 	stmt = sql->prepare("select x,y from test");
 
@@ -48,7 +48,7 @@ void test(std::string conn_str)
 	TEST(res->fetch(0,iv));
 	TEST(iv==10);
 	TEST(res->fetch(1,sv));
-	TEST(sv=="foo");
+	TEST(sv=="foo?");
 	TEST(!res->next());
 	res.reset();
 	stmt = sql->prepare("insert into test(x,y) values(20,NULL)");
@@ -70,7 +70,7 @@ void test(std::string conn_str)
 	sv="";
 	TEST(!res->is_null(0));
 	TEST(res->fetch(0,sv));
-	TEST(sv=="foo");
+	TEST(sv=="foo?");
 	stmt = sql->prepare("DELETE FROM test");
 	stmt->exec();
 	if(!(sql->engine()=="mssql" && (conn_str.find("utf=wide")==std::string::npos || conn_str.find("utf=narrow")!=std::string::npos))) {
@@ -139,7 +139,7 @@ void test(std::string conn_str)
 	time_t now=time(0);
 	std::tm t=*localtime(&now);
 	stmt->bind(3,t);
-	stmt->bind(4,"to be or not to be");
+	stmt->bind(4,"'to be' \\'or not' to be");
 	std::istringstream iss;
 	iss.str(std::string("\xFF\0\xFE\1\2",5));
 	if(sql->driver()!="odbc" || test_odbc_blob) 
@@ -196,7 +196,7 @@ void test(std::string conn_str)
 		TEST(i==10);
 		TEST(3.1399 <= r && r <= 3.1401);
 		TEST(mktime(&t)==now);
-		TEST(s=="to be or not to be");
+		TEST(s=="'to be' \\'or not' to be");
 		if(sql->driver()!="odbc" || test_odbc_blob) 
 			TEST(oss.str() == std::string("\xFF\0\xFE\1\2",5));
 		TEST(res->has_next() == cppdb::backend::result::next_row_unknown || res->has_next() == cppdb::backend::result::last_row_reached);
