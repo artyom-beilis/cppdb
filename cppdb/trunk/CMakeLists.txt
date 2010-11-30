@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 2.6)
 project(cppdb)
+
+option(DISABLE_SQLITE	"Link sqlite3 backend into the libcppdb" OFF)
+option(DISABLE_PQ 	"Link postgresql backend into the libcppdb" OFF)
+option(DISABLE_MYSQL	"Link mysql backend into the libcppdb" OFF)
+option(DISABLE_ODBC	"Link odbc backend into the libcppdb" OFF)
+
+
+option(SQLITE_BACKEND_INTERNAL	"Link sqlite3 backend into the libcppdb" OFF)
+option(PQ_BACKEND_INTERNAL 	"Link postgresql backend into the libcppdb" OFF)
+option(MYSQL_BACKEND_INTERNAL	"Link mysql backend into the libcppdb" OFF)
+option(ODBC_BACKEND_INTERNAL	"Link odbc backend into the libcppdb" OFF)
+
+
+set(CPPDB_VERSION 0.0.1)
+set(CPPDB_SOVERSION 0)
+
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 
@@ -30,6 +46,10 @@ endif()
 if(NOT WIN32)
 	find_library(DL_LIB dl)
 endif()
+
+add_definitions(-DCPPDB_LIBRARY_PREFIX="\\"${CMAKE_SHARED_LIBRARY_PREFIX}\\"")
+add_definitions(-DCPPDB_LIBRARY_SUFFIX="\\"${CMAKE_SHARED_LIBRARY_SUFFIX}\\"")
+add_definitions(-DCPPDB_SOVERSION="\\"${CPPDB_SOVERSION}\\"")
 
 check_cxx_source_compiles(
 	"int main() { volatile int v=0; return __sync_bool_compare_and_swap(&v,0,1); }"
@@ -97,10 +117,11 @@ set(LIBSRC
 	)
 
 
+
 if(ENABLE_SQLITE3)
-	set(LIBSRC ${LIBSRC} sqlite3_backend.cpp)
 	add_definitions(-DCPPDB_WITH_SQLITE3)
 	include_directories(${SQLITE3_PATH})
+	set(LIBSRC ${LIBSRC} sqlite3_backend.cpp)
 endif()
 
 if(ENABLE_PQ)
@@ -122,7 +143,9 @@ if(ENABLE_ODBC)
 	include_directories(${ODBC_PATH})
 endif()
 
+
 add_library(cppdb ${LIBSRC})
+
 if(ENABLE_SQLITE3)
 	target_link_libraries(cppdb ${SQLITE3_LIB})
 endif()
@@ -148,3 +171,10 @@ add_executable(test_backend test_backend.cpp)
 target_link_libraries(test_perf cppdb)
 target_link_libraries(test_basic cppdb)
 target_link_libraries(test_backend cppdb)
+
+if(WIN32)
+	set_target_properties(cppdb PROPERTIES VERSION ${CPPDB_SOVERSION} SOVERSION ${CPPDB_SOVERSION})
+else()
+	set_target_properties(cppdb PROPERTIES VERSION ${CPPDB_VERSION} SOVERSION ${CPPDB_SOVERSION})
+endif()
+
