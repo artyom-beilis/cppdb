@@ -546,83 +546,66 @@ class statement : public backend::statement {
 			ctype=SQL_C_BINARY;
 			sqltype = SQL_LONGVARBINARY;
 		}
-		void set(char const *b,char const *e,bool wide,int sqt)
+		void set_text(char const *b,char const *e,bool wide)
 		{
 			if(!wide) {
 				value.assign(b,e-b);
 				null=false;
 				ctype=SQL_C_CHAR;
-				sqltype = sqt;
+				sqltype = SQL_LONGVARCHAR;
 			}
 			else {
 				std::string tmp = widen(b,e);
 				value.swap(tmp);
 				null=false;
 				ctype=SQL_C_WCHAR;
-				sqltype = sqt;
+				sqltype = SQL_WLONGVARCHAR;
 			}
 		}
-		void set(std::string &s,bool wide,int sqt)
+		void set(std::tm const &v)
 		{
-			if(!wide) {
-				value.swap(s);
-				null=false;
-				ctype=SQL_C_CHAR;
-				sqltype = sqt;
-			}
-			else {
-				std::string tmp = widen(s);
-				value.swap(tmp);
-				null=false;
-				ctype=SQL_C_WCHAR;
-				sqltype = sqt;
-			}
+			value = format_time(v);
+			null=false;
+			sqltype = SQL_C_TIMESTAMP;
+			ctype = SQL_C_CHAR;
 		}
-		void set(char const *b,char const *e,bool wide)
-		{
-			if(!wide) {
-				set(b,e,false,SQL_LONGVARCHAR);
-			}
-			else {
-				set(b,e,true,SQL_WLONGVARCHAR);
-			}
-		}
-		void set(std::tm const &v,bool wide)
-		{
-			std::string s = format_time(v);
-			set(s,wide,SQL_C_TIMESTAMP);
-		}
+
 		template<typename T>
-		void set(T v,bool wide)
+		void set(T v)
 		{
 			std::ostringstream ss;
 			ss.imbue(std::locale::classic());
 			if(!std::numeric_limits<T>::is_integer)
 				ss << std::setprecision(std::numeric_limits<T>::digits10+1);
 			ss << v;
-			std::string sv=ss.str();
-			if(std::numeric_limits<T>::is_integer)
-				set(sv,wide,SQL_INTEGER);
+
+			value=ss.str();
+			null=false;
+			ctype = SQL_C_CHAR;
+			if(std::numeric_limits<T>::is_integer) 
+				sqltype = SQL_INTEGER;
 			else
-				set(sv,wide,SQL_DOUBLE);
+				sqltype = SQL_DOUBLE;
+
 		}
 		void bind(int col,SQLHSTMT stmt,bool wide)
 		{
 			int r;
+			lenval=value.size();
 			if(null) {
-				SQLLEN len = SQL_NULL_DATA;
+				lenval = SQL_NULL_DATA;
 				r = SQLBindParameter(	stmt,
 							col,
 							SQL_PARAM_INPUT,
-							SQL_C_CHAR, // C type C_CHAR or C_WCHAR
+							SQL_C_CHAR, 
 							SQL_NUMERIC, // for null
 							10, // COLUMNSIZE
 							0, //  Presision
 							0, // string
 							0, // size
-							&len);
+							&lenval);
 			}
-			else {
+			else if(ctype == SQL_C_BINARY) {
 				r = SQLBindParameter(	stmt,
 							col,
 							SQL_PARAM_INPUT,
@@ -632,9 +615,32 @@ class statement : public backend::statement {
 							0, //  Presision
 							(void*)value.c_str(), // string
 							value.size(),
-							0);
+							&lenval);
 			}
-
+			else if(ctype == SQL_C_WCHAR) {
+				r = SQLBindParameter(	stmt,
+							col,
+							SQL_PARAM_INPUT,
+							ctype, // C type C_CHAR or C_WCHAR
+							sqltype,
+							value.size()/2, // COLUMNSIZE
+							0, //  Presision
+							(void*)value.c_str(), // string
+							value.size(),
+							&lenval);
+			}
+			else { //if(ctype == SQL_C_CHAR) 
+				r = SQLBindParameter(	stmt,
+							col,
+							SQL_PARAM_INPUT,
+							ctype, // C type C_CHAR or C_WCHAR
+							sqltype,
+							value.size(), // COLUMNSIZE
+							0, //  Presision
+							(void*)value.c_str(), // string
+							value.size(),
+							&lenval);
+			}
 			check_odbc_error(r,stmt,SQL_HANDLE_STMT,wide);
 		}
 
@@ -642,6 +648,7 @@ class statement : public backend::statement {
 		bool null;
 		SQLSMALLINT ctype;
 		SQLSMALLINT sqltype;
+		SQLLEN lenval;
 	};
 public:
 	// Begin of API
@@ -682,11 +689,11 @@ public:
 	}
 	virtual void bind(int col,char const *b,char const *e)
 	{
-		param_at(col).set(b,e,wide_);
+		param_at(col).set_text(b,e,wide_);
 	}
 	virtual void bind(int col,std::tm const &s)
 	{
-		param_at(col).set(s,wide_);
+		param_at(col).set(s);
 	}
 	virtual void bind(int col,std::istream const &in) 
 	{
@@ -698,7 +705,7 @@ public:
 	template<typename T>
 	void do_bind_num(int col,T v)
 	{
-		param_at(col).set(v,wide_);
+		param_at(col).set(v);
 	}
 	virtual void bind(int col,int v) 
 	{

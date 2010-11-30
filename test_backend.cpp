@@ -13,8 +13,6 @@ extern "C" {
 
 using namespace std;
 
-//static const bool test_odbc_blob = false;
-static const bool test_odbc_blob = true;
 
 int last_line = 0;
 int passed = 0;
@@ -28,12 +26,19 @@ void test(std::string conn_str)
 	cppdb::ref_ptr<cppdb::backend::connection> sql(cppdb::driver_manager::instance().connect(conn_str));
 	cppdb::ref_ptr<cppdb::backend::statement> stmt;
 	cppdb::ref_ptr<cppdb::backend::result> res;
-	
+	bool wide_api = (sql->driver()=="odbc" && conn_str.find("utf=wide")!=std::string::npos);
+
 	try {
 		stmt = sql->prepare("drop table test");
 		stmt->exec(); 
 	}catch(...) {}
-	stmt = sql->prepare("create table test ( x integer not null, y varchar(1000) )");
+
+	if(sql->engine()=="mssql" && wide_api) {
+		stmt = sql->prepare("create table test ( x integer not null, y nvarchar(1000) )");
+	}
+	else
+		stmt = sql->prepare("create table test ( x integer not null, y varchar(1000) )");
+
 	stmt->exec();
 	stmt = sql->prepare("select * from test");
 	res = stmt->query();
@@ -75,7 +80,7 @@ void test(std::string conn_str)
 	TEST(sv=="foo?");
 	stmt = sql->prepare("DELETE FROM test");
 	stmt->exec();
-	if(!(sql->engine()=="mssql" && (conn_str.find("utf=wide")==std::string::npos || conn_str.find("utf=narrow")!=std::string::npos))) {
+	if(sql->engine()!="mssql" || wide_api) {
 		stmt = sql->prepare("insert into test(x,y) values(?,?)");
 		stmt->bind(1,15);
 		stmt->bind(2,"שלום");
@@ -127,7 +132,10 @@ void test(std::string conn_str)
 	else
 		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl blob)");
 	stmt->exec();
-	stmt = sql->prepare("insert into test values(?,?,?,?,?)");
+	if(sql->engine()=="mssql")
+		stmt = sql->prepare("insert into test values(?,?,?,?,cast(? as varbinary(max)))");
+	else
+		stmt = sql->prepare("insert into test values(?,?,?,?,?)");
 	stmt->bind_null(1);
 	stmt->bind_null(2);
 	stmt->bind_null(3);
@@ -144,10 +152,7 @@ void test(std::string conn_str)
 	stmt->bind(4,"'to be' \\'or not' to be");
 	std::istringstream iss;
 	iss.str(std::string("\xFF\0\xFE\1\2",5));
-	if(sql->driver()!="odbc" || test_odbc_blob) 
-		stmt->bind(5,iss);
-	else
-		stmt->bind_null(5);
+	stmt->bind(5,iss);
 	stmt->exec();
 	stmt = sql->prepare("select i,r,t,s,bl from test");
 	res = stmt->query();
@@ -187,20 +192,17 @@ void test(std::string conn_str)
 		TEST(res->fetch(1,r));
 		TEST(res->fetch(2,t));
 		TEST(res->fetch(3,s));
-		if(sql->driver()!="odbc" || test_odbc_blob) 
-			TEST(res->fetch(4,oss));
+		TEST(res->fetch(4,oss));
 		TEST(!res->is_null(0));
 		TEST(!res->is_null(1));
 		TEST(!res->is_null(2));
 		TEST(!res->is_null(3));
-		if(sql->driver()!="odbc" || test_odbc_blob) 
-			TEST(!res->is_null(4));
+		TEST(!res->is_null(4));
 		TEST(i==10);
 		TEST(3.1399 <= r && r <= 3.1401);
 		TEST(mktime(&t)==now);
 		TEST(s=="'to be' \\'or not' to be");
-		if(sql->driver()!="odbc" || test_odbc_blob) 
-			TEST(oss.str() == std::string("\xFF\0\xFE\1\2",5));
+		TEST(oss.str() == std::string("\xFF\0\xFE\1\2",5));
 		TEST(res->has_next() == cppdb::backend::result::next_row_unknown || res->has_next() == cppdb::backend::result::last_row_reached);
 		TEST(!res->next());
 	}
@@ -240,6 +242,7 @@ void test(std::string conn_str)
 	stmt = sql->prepare("insert into test(i,s) values(?,?)");
 	int sizes[]={	0, // General 0 length string
 			61,62,63,64,65,66,67, // mysql buffer size
+			510,511,512,513,514, // ODBC buffer size in wchars
 			1020,1021,1022,1023,1024,1025,1026,1027 // ODBC buffer size
 		    };
 	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
@@ -270,19 +273,6 @@ void test(std::string conn_str)
 		TEST(res->next());
 		std::string v;
 		TEST(res->fetch(0,v));
-		if(v!=value) {
-			std::cerr << size << std::endl;
-			if(v.size()!=value.size()) {
-				std::cerr << "Size diff" << v.size() << " " << value.size()<< std::endl;
-			}
-			else {
-				for(int k=0;k<size;k++) {
-					if(v[k]!=value[k])
-						std::cerr << "diff at " << k << ' ' << int(v[k]) 
-						<< ' ' << int(value[k]) << std::endl;
-				}
-			}
-		}
 		TEST(v==value);
 		res.reset();
 		stmt->reset();
@@ -290,43 +280,44 @@ void test(std::string conn_str)
 	stmt = sql->prepare("DELETE FROM test where 1<>0");
 	stmt->exec();
 
-	if(sql->driver()!="odbc" || test_odbc_blob)  {
-		sql->begin();
+	sql->begin();
+	if(sql->engine()=="mssql")
+		stmt = sql->prepare("insert into test(i,bl) values(?,cast(? as varbinary(max)))");
+	else
 		stmt = sql->prepare("insert into test(i,bl) values(?,?)");
-		for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
-			int size = sizes[i];
-			std::stringstream value;
-			srand(i);
-			for(int j=0;j<size;j++) {
-				value << char(rand() % 26 + 'a');
-			}
-			stmt->bind(1,size);
-			stmt->bind(2,value);
-			stmt->exec();
-			stmt->reset();
+	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
+		int size = sizes[i];
+		std::stringstream value;
+		srand(i);
+		for(int j=0;j<size;j++) {
+			value << char(rand() % 26 + 'a');
 		}
-		sql->commit();
-		stmt = sql->prepare("select bl from test where i=?");
-		for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
-			int size = sizes[i];
-			std::string value;
-			value.reserve(size);
-			srand(i);
-			for(int j=0;j<size;j++) {
-				value+=char(rand() % 26 + 'a');
-			}
-			stmt->bind(1,size);
-			res = stmt->query();
-			TEST(res->next());
-			std::ostringstream v;
-			TEST(res->fetch(0,v));
-			TEST(v.str()==value);
-			res.reset();
-			stmt->reset();
-		}
-		stmt = sql->prepare("DELETE FROM test where 1<>0");
+		stmt->bind(1,size);
+		stmt->bind(2,value);
 		stmt->exec();
+		stmt->reset();
 	}
+	sql->commit();
+	stmt = sql->prepare("select bl from test where i=?");
+	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
+		int size = sizes[i];
+		std::string value;
+		value.reserve(size);
+		srand(i);
+		for(int j=0;j<size;j++) {
+			value+=char(rand() % 26 + 'a');
+		}
+		stmt->bind(1,size);
+		res = stmt->query();
+		TEST(res->next());
+		std::ostringstream v;
+		TEST(res->fetch(0,v));
+		TEST(v.str()==value);
+		res.reset();
+		stmt->reset();
+	}
+	stmt = sql->prepare("DELETE FROM test where 1<>0");
+	stmt->exec();
 	
 }
 
