@@ -13,7 +13,8 @@ extern "C" {
 
 using namespace std;
 
-static const bool test_odbc_blob = false;
+//static const bool test_odbc_blob = false;
+static const bool test_odbc_blob = true;
 
 int last_line = 0;
 int passed = 0;
@@ -269,12 +270,63 @@ void test(std::string conn_str)
 		TEST(res->next());
 		std::string v;
 		TEST(res->fetch(0,v));
+		if(v!=value) {
+			std::cerr << size << std::endl;
+			if(v.size()!=value.size()) {
+				std::cerr << "Size diff" << v.size() << " " << value.size()<< std::endl;
+			}
+			else {
+				for(int k=0;k<size;k++) {
+					if(v[k]!=value[k])
+						std::cerr << "diff at " << k << ' ' << int(v[k]) 
+						<< ' ' << int(value[k]) << std::endl;
+				}
+			}
+		}
 		TEST(v==value);
 		res.reset();
 		stmt->reset();
 	}
 	stmt = sql->prepare("DELETE FROM test where 1<>0");
 	stmt->exec();
+
+	if(sql->driver()!="odbc" || test_odbc_blob)  {
+		sql->begin();
+		stmt = sql->prepare("insert into test(i,bl) values(?,?)");
+		for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
+			int size = sizes[i];
+			std::stringstream value;
+			srand(i);
+			for(int j=0;j<size;j++) {
+				value << char(rand() % 26 + 'a');
+			}
+			stmt->bind(1,size);
+			stmt->bind(2,value);
+			stmt->exec();
+			stmt->reset();
+		}
+		sql->commit();
+		stmt = sql->prepare("select bl from test where i=?");
+		for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
+			int size = sizes[i];
+			std::string value;
+			value.reserve(size);
+			srand(i);
+			for(int j=0;j<size;j++) {
+				value+=char(rand() % 26 + 'a');
+			}
+			stmt->bind(1,size);
+			res = stmt->query();
+			TEST(res->next());
+			std::ostringstream v;
+			TEST(res->fetch(0,v));
+			TEST(v.str()==value);
+			res.reset();
+			stmt->reset();
+		}
+		stmt = sql->prepare("DELETE FROM test where 1<>0");
+		stmt->exec();
+	}
 	
 }
 

@@ -780,9 +780,9 @@ public:
 		bind_all();
 		int r = real_exec();
 		check_error(r);
-		char buf[1024];
 		result::rows_type rows;
 		result::row_type row;
+		
 		std::string value;
 		bool is_null = false;
 		SQLSMALLINT ocols;
@@ -813,11 +813,12 @@ public:
 			case SQL_CHAR:
 			case SQL_VARCHAR:
 			case SQL_LONGVARCHAR:
+				types[col]=SQL_C_CHAR;
+				break;
 			case SQL_WCHAR:
 			case SQL_WVARCHAR:
 			case SQL_WLONGVARCHAR:
-				if(wide_)
-					types[col]=SQL_C_WCHAR ;
+				types[col]=SQL_C_WCHAR ;
 				break;
 			case SQL_BINARY:
 			case SQL_VARBINARY:
@@ -825,65 +826,79 @@ public:
 				types[col]=SQL_C_BINARY ;
 				break;
 			default:
+				types[col]=SQL_C_DEFAULT;
+				// Just a hack, actually I'm going to use C
 				;
 			}
 		}
-
-
 
 		while((r=SQLFetch(stmt_))==SQL_SUCCESS || r==SQL_SUCCESS_WITH_INFO) {
 			row.resize(cols);
 			for(int col=0;col < cols;col++) {
 				SQLLEN len = 0;
-				value.clear();
 				is_null=false;
 				int type = types[col];
-				int r = SQLGetData(stmt_,col+1,type,buf,sizeof(buf),&len);
-				
-				if(r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO) {
+				if(type==SQL_C_DEFAULT) {
+					char buf[64];
+					int r = SQLGetData(stmt_,col+1,SQL_C_CHAR,buf,sizeof(buf),&len);
+					check_error(r);
 					if(len == SQL_NULL_DATA) {
 						is_null = true;
 					}
-					else if(len == SQL_NO_TOTAL) {
-						for(;;) {
-							
-							if(!wide_)
-								value.append(buf,sizeof(buf)-1);
-							else
-								value.append(buf,sizeof(buf)-2);
-							r= SQLGetData(stmt_,col,type,buf,sizeof(buf),&len);
-							if(len == SQL_NO_TOTAL)
-								continue;
-							value.append(buf,len);
-						}
-
-					}
-					else if(len > SQLLEN(sizeof(buf))) {
-						if(!wide_)
-							value.append(buf,sizeof(buf)-1);
-						else
-							value.append(buf,sizeof(buf)-2);
-						std::vector<char> all(len-sizeof(buf)+2);
-						r = SQLGetData(stmt_,col,type,&all.front(),all.size(),&len);
-						if(len > 0)
-							value.append(&all.front(),len);
-					}
-					else if(len >= 0)// len <= sizeof(buf)) 
-					{
+					else if(len <= 64) {
 						value.assign(buf,len);
 					}
 					else {
-						throw cppdb_error("cppdb::odbc::iternal error");
+						throw cppdb_error("cppdb::odbc::query - data too long");
 					}
 				}
 				else {
+					char buf[1024];
+					size_t real_len;
+					if(type == SQL_C_CHAR) {
+						real_len = sizeof(buf)-1;
+					}
+					else if(type == SQL_C_BINARY) {
+						real_len = sizeof(buf);
+					}
+					else { // SQL_C_WCHAR
+						real_len = sizeof(buf) - sizeof(SQLWCHAR);
+					}
+
+					r = SQLGetData(stmt_,col+1,type,buf,sizeof(buf),&len);
 					check_error(r);
+					if(len == SQL_NULL_DATA) {
+						is_null = true;	
+					}
+					else if(len == SQL_NO_TOTAL) {
+						while(len==SQL_NO_TOTAL) {
+							value.append(buf,real_len);
+							r = SQLGetData(stmt_,col+1,type,buf,sizeof(buf),&len);
+							check_error(r);
+						}
+						value.append(buf,len);
+					}
+					else if(0<= len && size_t(len) <= real_len) {
+						value.assign(buf,len);
+					}
+					else if(len>=0) {
+						value.assign(buf,real_len);
+						size_t rem_len = len - real_len;
+						std::vector<char> tmp(rem_len+2,0);
+						r = SQLGetData(stmt_,col+1,type,&tmp[0],tmp.size(),&len);
+						check_error(r);
+						value.append(&tmp[0],rem_len);
+					}
+					else {
+						throw cppdb_error("cppdb::odbc::query invalid result length");
+					}
+					if(!is_null && type == SQL_C_WCHAR) {
+						std::string tmp=narrower(value);
+						value.swap(tmp);
+					}
 				}
+					
 				row[col].first = is_null;
-				if(types[col] == SQL_C_WCHAR) {
-					std::string tmp=narrower(value);
-					value.swap(tmp);
-				}
 				row[col].second.swap(value);
 			}
 			rows.push_back(result::row_type());
