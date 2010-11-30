@@ -121,32 +121,18 @@ namespace cppdb {
 	}
 
 	// TODO Fix Me
-	#define CPPDB_LIBRARY_SO_VERSION "0"
+	#define CPPDB_LIBRARY_SO_VERSION 
 	// TODO Fix Me
 
-	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__CYGWIN__)
 	
-	#define CPPDB_LIBRARY_PREFIX ""
-	#define CPPDB_LIBRARY_SUFFIX_V1 ".dll"
-	#define CPPDB_LIBRARY_SUFFIX_V2 "-" CPPDB_LIBRARY_SO_VERSION ".dll"
-
-	#elif defined(__CYGWIN__)
-
-	#define CPPDB_LIBRARY_PREFIX "cyg"
-	#define CPPDB_LIBRARY_SUFFIX_V1 ".dll"
-	#define CPPDB_LIBRARY_SUFFIX_V2 "-" CPPDB_LIBRARY_SO_VERSION ".dll"
-
-	#elif defined(__APPLE__)
-
-	#define CPPDB_LIBRARY_PREFIX "lib"
-	#define CPPDB_LIBRARY_SUFFIX_V1 ".dylib"
-	#define CPPDB_LIBRARY_SUFFIX_V2 ".dylib." CPPDB_LIBRARY_SO_VERSION
+	#	define CPPDB_LIBRARY_SUFFIX_V1 CPPDB_LIBRARY_SUFFIX
+	#	define CPPDB_LIBRARY_SUFFIX_V2 "-" CPPDB_LIBRARY_SO_VERSION CPPDB_LIBRARY_SUFFIX
 
 	#else
 
-	#define CPPDB_LIBRARY_PREFIX "lib"
-	#define CPPDB_LIBRARY_SUFFIX_V1 ".so"
-	#define CPPDB_LIBRARY_SUFFIX_V2 ".so." CPPDB_LIBRARY_SO_VERSION
+	#	define CPPDB_LIBRARY_SUFFIX_V1 CPPDB_LIBRARY_SUFFIX
+	#	define CPPDB_LIBRARY_SUFFIX_V2 CPPDB_LIBRARY_SUFFIX "." CPPDB_LIBRARY_SO_VERSION
 
 	#endif
 
