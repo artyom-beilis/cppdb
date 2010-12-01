@@ -676,7 +676,7 @@ public:
 	{
 		param_at(col).set(s);
 	}
-	virtual void bind(int col,std::istream const &in) 
+	virtual void bind(int col,std::istream &in) 
 	{
 		std::ostringstream ss;
 		ss << in.rdbuf();

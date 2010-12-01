@@ -290,7 +290,7 @@ namespace unprep {
 			s+=format_time(v);
 			s+='\'';
 		}
-		virtual void bind(int col,std::istream const &v)
+		virtual void bind(int col,std::istream &v)
 		{
 			std::ostringstream ss;
 			ss << v.rdbuf();
@@ -899,7 +899,7 @@ namespace prep {
 		/// ignore if it is impossible to know whether the placeholder exists without special
 		/// support from back-end.
 		///
-		virtual void bind(int col,std::istream const &v)
+		virtual void bind(int col,std::istream &v)
 		{
 			std::ostringstream ss;
 			ss << v.rdbuf();

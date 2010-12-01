@@ -231,7 +231,7 @@ namespace cppdb {
 			/// ignore if it is impossible to know whether the placeholder exists without special
 			/// support from back-end.
 			///
-			virtual void bind(int col,std::istream const &) = 0;
+			virtual void bind(int col,std::istream &) = 0;
 			///
 			/// Bind an integer value to column \a col (starting from 1).
 			///
