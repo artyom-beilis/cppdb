@@ -1,5 +1,7 @@
 #include "shared_object.h"
 
+#include <string>
+
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
 #	include <windows.h>
 #	define RTLD_LAZY 0

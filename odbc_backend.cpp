@@ -591,7 +591,6 @@ class statement : public backend::statement {
 		void bind(int col,SQLHSTMT stmt,bool wide)
 		{
 			int r;
-			lenval=value.size();
 			if(null) {
 				lenval = SQL_NULL_DATA;
 				r = SQLBindParameter(	stmt,
@@ -605,42 +604,24 @@ class statement : public backend::statement {
 							0, // size
 							&lenval);
 			}
-			else if(ctype == SQL_C_BINARY) {
-				r = SQLBindParameter(	stmt,
-							col,
-							SQL_PARAM_INPUT,
-							ctype, // C type C_CHAR or C_WCHAR
-							sqltype,
-							value.size(), // COLUMNSIZE
-							0, //  Presision
-							(void*)value.c_str(), // string
-							value.size(),
-							&lenval);
-			}
-			else if(ctype == SQL_C_WCHAR) {
-				r = SQLBindParameter(	stmt,
-							col,
-							SQL_PARAM_INPUT,
-							ctype, // C type C_CHAR or C_WCHAR
-							sqltype,
-							value.size()/2, // COLUMNSIZE
-							0, //  Presision
-							(void*)value.c_str(), // string
-							value.size(),
-							&lenval);
-			}
-			else { //if(ctype == SQL_C_CHAR) 
-				r = SQLBindParameter(	stmt,
-							col,
-							SQL_PARAM_INPUT,
-							ctype, // C type C_CHAR or C_WCHAR
-							sqltype,
-							value.size(), // COLUMNSIZE
-							0, //  Presision
-							(void*)value.c_str(), // string
-							value.size(),
-							&lenval);
-			}
+            else {
+                lenval=value.size();
+                size_t column_size = value.size();
+                if(ctype == SQL_C_WCHAR)
+                    column_size/=2;
+                if(value.empty())
+                    column_size=1;
+                r = SQLBindParameter(	stmt,
+                            col,
+                            SQL_PARAM_INPUT,
+                            ctype,
+                            sqltype,
+                            column_size, // COLUMNSIZE
+                            0, //  Presision
+                            (void*)value.c_str(), // string
+                            value.size(),
+                            &lenval);
+            }
 			check_odbc_error(r,stmt,SQL_HANDLE_STMT,wide);
 		}
 

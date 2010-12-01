@@ -104,12 +104,11 @@ int main(int argc,char **argv)
 		cppdb::statement stat = sql<<"delete from test where 1<>0" << cppdb::exec;
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
 		TEST(stat.affected()==2);
-		return 0;
-			
 	}
 	catch(std::exception const &e) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
 		return 1;
 	}
+    std::cout << "Ok" << std::endl;
 	return 0;
 }
