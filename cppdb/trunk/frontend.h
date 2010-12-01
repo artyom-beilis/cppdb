@@ -211,7 +211,7 @@ namespace cppdb {
 			return bind(v);
 		}
 		
-		statement &operator<<(std::istream const &v)
+		statement &operator<<(std::istream &v)
 		{
 			return bind(v);
 		}
@@ -264,7 +264,7 @@ namespace cppdb {
 			stat_->bind(placeholder_++,v);
 			return *this;
 		}
-		statement &bind(std::istream const &v)
+		statement &bind(std::istream &v)
 		{
 			stat_->bind(placeholder_++,v);
 			return *this;
@@ -295,7 +295,7 @@ namespace cppdb {
 			stat_->bind(col,v);
 			return *this;
 		}
-		statement &bind(int col,std::istream const &v)
+		statement &bind(int col,std::istream &v)
 		{
 			stat_->bind(col,v);
 			return *this;

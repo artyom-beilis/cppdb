@@ -235,7 +235,7 @@ namespace cppdb {
 				std::string tmp = format_time(v);
 				check_bind(sqlite3_bind_text(st_,col,tmp.c_str(),tmp.size(),SQLITE_TRANSIENT));
 			}
-			virtual void bind(int col,std::istream const &v) 
+			virtual void bind(int col,std::istream &v) 
 			{
 				reset_stat();
 				// TODO Fix me

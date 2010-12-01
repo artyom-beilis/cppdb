@@ -27,6 +27,15 @@ void test(std::string conn_str)
 	cppdb::ref_ptr<cppdb::backend::statement> stmt;
 	cppdb::ref_ptr<cppdb::backend::result> res;
 	bool wide_api = (sql->driver()=="odbc" && conn_str.find("utf=wide")!=std::string::npos);
+	
+	bool pq_oid = false; // use translactions for blob
+	
+	if(sql->engine() == "postgresql") {
+		if(sql->driver() == "odbc")
+			pq_oid = true;
+		else if(sql->driver()=="postgresql" && conn_str.find("@blob=bytea") == std::string::npos)
+			pq_oid = true;
+	}
 
 	try {
 		stmt = sql->prepare("drop table test");
@@ -127,8 +136,17 @@ void test(std::string conn_str)
 		stmt = sql->prepare("create table test ( i integer, r real, t datetime, s varchar(5000), bl varbinary(max))");
 	else if(sql->engine() == "mysql") 
 		stmt = sql->prepare("create table test ( i integer, r real, t datetime default null, s varchar(5000), bl blob) Engine = innodb");
-	else if(sql->engine() == "postgresql")
-		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl bytea)");
+	else if(sql->engine() == "postgresql") {
+		if(pq_oid) {
+			stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl oid)");
+			stmt->exec();
+			stmt = sql->prepare(	"CREATE TRIGGER t_test BEFORE UPDATE OR DELETE ON test "
+						"FOR EACH ROW EXECUTE PROCEDURE lo_manage(bl)");
+		}
+		else {
+			stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl bytea)");
+		}
+	}
 	else
 		stmt = sql->prepare("create table test ( i integer, r real, t timestamp, s varchar(5000), bl blob)");
 	stmt->exec();
@@ -143,6 +161,9 @@ void test(std::string conn_str)
 	stmt->bind_null(5);
 	stmt->exec();
 	TEST(stmt->affected()==1);
+	if(pq_oid) {
+		sql->begin();
+	}
 	stmt->reset();
 	stmt->bind(1,10);
 	stmt->bind(2,3.14);
@@ -154,6 +175,10 @@ void test(std::string conn_str)
 	iss.str(std::string("\xFF\0\xFE\1\2",5));
 	stmt->bind(5,iss);
 	stmt->exec();
+	if(pq_oid) {
+		sql->commit();
+		sql->begin();
+	}
 	stmt = sql->prepare("select i,r,t,s,bl from test");
 	res = stmt->query();
 	{
@@ -205,6 +230,9 @@ void test(std::string conn_str)
 		TEST(oss.str() == std::string("\xFF\0\xFE\1\2",5));
 		TEST(res->has_next() == cppdb::backend::result::next_row_unknown || res->has_next() == cppdb::backend::result::last_row_reached);
 		TEST(!res->next());
+	}
+	if(pq_oid) {
+		sql->commit();
 	}
 	stmt = sql->prepare("DELETE FROM test where 1<>0");
 	stmt->exec();
@@ -298,6 +326,7 @@ void test(std::string conn_str)
 		stmt->reset();
 	}
 	sql->commit();
+
 	stmt = sql->prepare("select bl from test where i=?");
 	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
 		int size = sizes[i];
@@ -307,6 +336,8 @@ void test(std::string conn_str)
 		for(int j=0;j<size;j++) {
 			value+=char(rand() % 26 + 'a');
 		}
+		if(pq_oid)
+			sql->begin();
 		stmt->bind(1,size);
 		res = stmt->query();
 		TEST(res->next());
@@ -315,6 +346,8 @@ void test(std::string conn_str)
 		TEST(v.str()==value);
 		res.reset();
 		stmt->reset();
+		if(pq_oid)
+			sql->commit();
 	}
 	stmt = sql->prepare("DELETE FROM test where 1<>0");
 	stmt->exec();

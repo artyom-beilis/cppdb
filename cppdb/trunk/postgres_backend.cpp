@@ -1,4 +1,5 @@
 #include <postgresql/libpq-fe.h>
+#include <postgresql/libpq/libpq-fs.h>
 #include "backend.h"
 #include "errors.h"
 #include "utils.h"
@@ -13,14 +14,49 @@
 
 namespace cppdb {
 	namespace postgresql {
-		
+	
+		typedef enum {
+			lo_type,
+			bytea_type
+		} blob_type;
+
+		class pqerror : public cppdb_error {
+		public:
+			pqerror(char const *msg) : cppdb_error(message(msg)) {}
+			pqerror(PGresult *r,char const *msg) : cppdb_error(message(msg,r)) {}
+			pqerror(PGconn *c,char const *msg) : cppdb_error(message(msg,c)) {}
+			
+			static std::string message(char const *msg)
+			{
+				return std::string("cppdb::posgresql: ") + msg;
+			}
+			static std::string message(char const *msg,PGresult *r)
+			{
+				std::string m="cppdb::posgresql: ";
+				m+=msg;
+				m+=": ";
+				m+=PQresultErrorMessage(r);
+				return m;
+			}
+			static std::string message(char const *msg,PGconn *c)
+			{
+				std::string m="cppdb::posgresql: ";
+				m+=msg;
+				m+=": ";
+				m+=PQerrorMessage(c);
+				return m;
+			}
+		};
+
 		class result : public backend::result {
 		public:
-			result(PGresult *res) :
+			result(PGresult *res,PGconn *conn,blob_type b) :
 				res_(res),
+				conn_(conn),
 				rows_(PQntuples(res)),
 				cols_(PQnfields(res)),
-				current_(-1)
+				current_(-1),
+				blob_(b)
 			{
 			}
 			virtual ~result() 
@@ -112,19 +148,53 @@ namespace cppdb {
 			{
 				if(do_isnull(col))
 					return false;
-				unsigned char *val=(unsigned char*)PQgetvalue(res_,current_,col);
-				size_t len = 0;
-				unsigned char *buf=PQunescapeBytea(val,&len);
-				if(!buf) {
-					throw bad_value_cast();
-				}
-				try {
-					v.write((char *)buf,len);
-				}catch(...) {
+				if(blob_ == bytea_type) {
+					unsigned char *val=(unsigned char*)PQgetvalue(res_,current_,col);
+					size_t len = 0;
+					unsigned char *buf=PQunescapeBytea(val,&len);
+					if(!buf) {
+						throw bad_value_cast();
+					}
+					try {
+						v.write((char *)buf,len);
+					}catch(...) {
+						PQfreemem(buf);
+						throw;
+					}
 					PQfreemem(buf);
-					throw;
 				}
-				PQfreemem(buf);
+				else { // oid
+					Oid id = 0;
+					fetch(col,id);
+					if(id==0) {
+						throw pqerror("fetching large object failed, oid=0");
+					}
+					int fd = -1;
+					try {
+						fd = lo_open(conn_,id,INV_READ | INV_WRITE);
+						if(fd < 0)
+							throw pqerror(conn_,"Failed opening large object for read");
+						char buf[4096];
+						for(;;) {
+							int n=lo_read(conn_,fd,buf,sizeof(buf));
+							if(n < 0)
+								throw pqerror(conn_,"Failed reading large object");
+							if(n>=0)
+								v.write(buf,n);
+							if(n < int(sizeof(buf)))
+								break;
+						}
+						int r = lo_close(conn_,fd);
+						fd = -1;
+						if(r < 0)
+							throw pqerror(conn_,"error on close of large object");
+					}
+					catch(...) {
+						if(fd != -1)
+							lo_close(conn_,fd);
+						throw;
+					}
+				}
 				return true;
 			}
 			virtual bool fetch(int col,std::tm &v)
@@ -166,9 +236,11 @@ namespace cppdb {
 				return PQgetisnull(res_,current_,col);
 			}
 			PGresult *res_;
+			PGconn *conn_;
 			int rows_;
 			int cols_;
 			int current_;
+			blob_type blob_;
 		};
 
 		class statement : public backend::statement {
@@ -180,11 +252,12 @@ namespace cppdb {
 				binary_param
 			} param_type;
 
-			statement(PGconn *conn,std::string const &src_query,unsigned long long prepared_id) :
+			statement(PGconn *conn,std::string const &src_query,blob_type b,unsigned long long prepared_id) :
 				res_(0),
 				conn_(conn),
 				orig_query_(src_query),
-				params_(0)
+				params_(0),
+				blob_(b)
 			{
 				std::ostringstream ss;
 				ss.imbue(std::locale::classic());
@@ -216,17 +289,17 @@ namespace cppdb {
 					prepared_id_ = ss.str();
 
 					PGresult *r=PQprepare(conn_,prepared_id_.c_str(),query_.c_str(),0,0);
-					if(!r)
-						throw std::bad_alloc();
-					if(PQresultStatus(r)==PGRES_COMMAND_OK) {
-						PQclear(r);
+					try {
+						if(!r)
+							throw std::bad_alloc();
+						if(PQresultStatus(r)!=PGRES_COMMAND_OK)
+							throw pqerror(r,"statement preparation failed");
 					}
-					else {
-						std::string e = "unknown error";
-						try { e = PQresultErrorMessage(r); }catch(...){}
-						PQclear(r);
-						throw cppdb_error("cppdb::postgresql::statement " + e);
+					catch(...) {
+						if(r) PQclear(r);
+						throw;
 					}
+					PQclear(r);
 				}
 			}
 			virtual ~statement()
@@ -285,13 +358,52 @@ namespace cppdb {
 				params_values_[col-1]=format_time(v);
 				params_set_[col-1]=text_param;
 			}
-			virtual void bind(int col,std::istream const &in)
+			virtual void bind(int col,std::istream &in)
 			{
 				check(col);
-				std::ostringstream ss;
-				ss << in.rdbuf();
-				params_values_[col-1]=ss.str();
-				params_set_[col-1]=binary_param;
+				if(blob_ == bytea_type) {
+					std::ostringstream ss;
+					ss << in.rdbuf();
+					params_values_[col-1]=ss.str();
+					params_set_[col-1]=binary_param;
+				}
+				else {
+					Oid id = 0;
+					int fd = -1;
+					try {
+						id = lo_creat(conn_, INV_READ|INV_WRITE);
+						if(id == 0)
+							throw pqerror(conn_,"failed to create large object");
+						fd = lo_open(conn_,id,INV_READ | INV_WRITE);
+						if(fd < 0)
+							throw pqerror(conn_,"failed to open large object for writing");
+						char buf[4096];
+						for(;;) {
+							in.read(buf,sizeof(buf));
+							int bytes_read = in.gcount();
+							if(bytes_read > 0) {
+								int n = lo_write(conn_,fd,buf,bytes_read);
+								if(n < 0) {
+									throw pqerror(conn_,"failed writing to large object");
+								}
+							}
+							if(bytes_read < int(sizeof(buf)))
+								break;
+						}
+						int r = lo_close(conn_,fd);
+						fd=-1;
+						if(r < 0)
+							throw pqerror(conn_,"error closing large object after write");
+						bind(col,id);
+					}
+					catch(...) {
+						if(fd<-1)
+							lo_close(conn_,fd);
+						if(id!=0)
+							lo_unlink(conn_,id);
+						throw;
+					}
+				}
 			}
 			
 			template<typename T>
@@ -407,16 +519,16 @@ namespace cppdb {
 				switch(PQresultStatus(res_)){
 				case PGRES_TUPLES_OK:
 					{
-						result *ptr = new result(res_);
+						result *ptr = new result(res_,conn_,blob_);
 						res_ = 0;
 						return ptr;
 					}
 					break;
 				case PGRES_COMMAND_OK:
-					throw cppdb_error("Statement used instread of query");
+					throw pqerror("Statement used instread of query");
 					break;
 				default:
-					throw cppdb_error(PQresultErrorMessage(res_));
+					throw pqerror(res_,"query execution failed ");
 				}
 			}
 			virtual void exec() 
@@ -424,12 +536,12 @@ namespace cppdb {
 				real_query();
 				switch(PQresultStatus(res_)){
 				case PGRES_TUPLES_OK:
-					throw cppdb_error("Query used instread of statement");
+					throw pqerror("Query used instread of statement");
 					break;
 				case PGRES_COMMAND_OK:
 					break;
 				default:
-					throw cppdb_error(PQresultErrorMessage(res_));
+					throw pqerror(res_,"statement execution failed ");
 				}
 
 			}
@@ -449,11 +561,11 @@ namespace cppdb {
 								0 // string format
 								);
 					if(PQresultStatus(res) != PGRES_TUPLES_OK) {
-						throw cppdb_error(PQresultErrorMessage(res));
+						throw pqerror(res,"failed to fetch last sequence id");
 					}
 					char const *val = PQgetvalue(res,0,0);
 					if(!val || *val==0)
-						throw cppdb_error("Failed to get sequecne id");
+						throw pqerror("Failed to get value for sequecne id");
 					rowid = atoll(val);
 					
 				}
@@ -492,6 +604,7 @@ namespace cppdb {
 			std::vector<std::string> params_values_;
 			std::vector<param_type> params_set_;
 			std::string prepared_id_;
+			blob_type blob_;
 		};
 
 		class connection : public backend::connection {
@@ -525,11 +638,11 @@ namespace cppdb {
 			}
 			virtual statement *prepare_statement(std::string const &q)
 			{
-				return new statement(conn_,q,++prepared_id_);
+				return new statement(conn_,q,blob_,++prepared_id_);
 			}
 			virtual statement *create_statement(std::string const &q)
 			{
-				return new statement(conn_,q,0);
+				return new statement(conn_,q,blob_,0);
 			}
 			std::string do_escape(char const *b,size_t length)
 			{
@@ -583,15 +696,28 @@ namespace cppdb {
 				prepared_id_(0)
 			{
 				std::string pq=pq_string(ci);
-				conn_ = PQconnectdb(pq.c_str());	
-				if(!conn_) {
-					throw cppdb_error("postgresql::connection failed to create connection object");
+				std::string blob = ci.get("@blob","lo");
+				
+				if(blob == "bytea")
+					blob_ = bytea_type;
+				else if(blob == "lo")
+					blob_ = lo_type;
+				else 
+					throw pqerror("@blob property should be either lo or bytea");
+
+				conn_ = 0;
+				try {
+					conn_ = PQconnectdb(pq.c_str());
+					if(!conn_)
+						throw pqerror("failed to create connection object");
+					if(PQstatus(conn_)!=CONNECTION_OK)
+						throw pqerror("failed to connect");
 				}
-				if(PQstatus(conn_)!=CONNECTION_OK) {
-					std::string message;
-					try { message = PQerrorMessage(conn_); } catch(...) {}
-					PQfinish(conn_);
-					throw cppdb_error("postgresql::connection failed:" + message);
+				catch(...) {
+					if(conn_) {
+						PQfinish(conn_);
+						conn_ = 0;
+					}
 				}
 			}
 			virtual ~connection()
@@ -609,6 +735,7 @@ namespace cppdb {
 		private:
 			PGconn *conn_;
 			unsigned long long prepared_id_;
+			blob_type blob_;
 		};
 
 
