@@ -1,6 +1,7 @@
 #ifndef CPPDB_CONN_MANAGER_H
 #define CPPDB_CONN_MANAGER_H
 
+#include "defs.h"
 #include "ref_ptr.h"
 #include "mutex.h"
 #include <map>
@@ -14,7 +15,7 @@ namespace cppdb {
 		class connection;
 	}
 
-	class connections_manager {
+	class CPPDB_API connections_manager {
 		connections_manager();
 		~connections_manager();
 		connections_manager(connections_manager const &);

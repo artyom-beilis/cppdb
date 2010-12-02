@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include <postgresql/libpq-fe.h>
 #include <postgresql/libpq/libpq-fs.h>
 #include "backend.h"

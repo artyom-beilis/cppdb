@@ -1,5 +1,7 @@
 #ifndef CPPDB_POOL_H
 #define CPPDB_POOL_H
+
+#include "defs.h"
 #include "ref_ptr.h"
 #include "mutex.h"
 #include "utils.h"
@@ -13,7 +15,7 @@ namespace cppdb {
 		class connection;
 	}
 	
-	class pool : public ref_counted {
+	class CPPDB_API pool : public ref_counted {
 		pool();
 		pool(pool const &);
 		void operator=(pool const &);

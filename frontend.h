@@ -1,17 +1,30 @@
 #ifndef CPPDB_FRONTEND_H
 #define CPPDB_FRONEND_H
+#include "defs.h"
+#include "errors.h"
+#include "ref_ptr.h"
+
 #include <iosfwd>
 #include <ctime>
 #include <string>
-#include "backend.h"
-#include "errors.h"
-#include <assert.h>
+#include <memory>
 
 ///
 /// The namespace of all data related to the cppdb api
 ///
 
 namespace cppdb {
+
+	class result;
+	class statement;
+	class session;
+
+	
+	namespace backend {
+		class result;
+		class statement;
+		class connection;
+	}
 	
 	///
 	/// Null value marker
@@ -40,6 +53,11 @@ namespace cppdb {
 	} // tags
 	/// \endcond
 
+	///
+	/// Create a pair of value and tag for fetching a value from row, the fetched
+	/// value will be stored in \a value if the column is not null and the flag
+	/// if the value is null or not saved in \a tag
+	///
 	template<typename T>
 	tags::into_tag<T> into(T &value,null_tag_type &tag)
 	{
@@ -63,9 +81,8 @@ namespace cppdb {
 		return tags::use_tag<T>(value,tag);
 	}
 
-	class statement;
 
-	class result {
+	class CPPDB_API result {
 	public:
 		result();
 		~result();
@@ -76,8 +93,8 @@ namespace cppdb {
 		bool next();
 		
 		int index(std::string const &n);
-		std::string name(int col);
 		int find_column(std::string const &name);
+		std::string name(int col);
 
 		bool is_null(int col);
 		bool is_null(std::string const &n);
@@ -136,7 +153,7 @@ namespace cppdb {
 		template<typename T>
 		T get(std::string const &name)
 		{
-			T v;
+			T v=T();
 			if(!fetch(name,v))
 				throw null_value_fetch();
 			return v;
@@ -145,7 +162,7 @@ namespace cppdb {
 		template<typename T>
 		T get(int col)
 		{
-			T v;
+			T v=T();
 			if(!fetch(col,v))
 				throw null_value_fetch();
 			return v;
@@ -190,61 +207,69 @@ namespace cppdb {
 		ref_ptr<backend::connection> conn_;
 	};
 
-	class statement {
+	class CPPDB_API statement {
 	public:
-		statement() :	placeholder_(1)
-		{
-		}
-		~statement()
-		{
-			stat_.reset();
-			conn_.reset();
-		}
-		void reset()
-		{
-			placeholder_ = 1;
-			stat_->reset();
-		}
+		statement();
+		~statement();
+		statement(statement const &);
+		statement const &operator=(statement const &);
 
-		statement &operator<<(std::string const &v)
-		{
-			return bind(v);
-		}
-		statement &operator<<(char const *s)
-		{
-			return bind(s);
-		}
-		
-		statement &operator<<(std::tm const &v)
-		{
-			return bind(v);
-		}
-		
-		statement &operator<<(std::istream &v)
-		{
-			return bind(v);
-		}
+		void reset();
 
-		statement &operator<<(void (*manipulator)(statement &st))
-		{
-			manipulator(*this);
-			return *this;
-		}
-		result operator<<(result (*manipulator)(statement &st))
-		{
-			return manipulator(*this);
-		}
+		statement &bind(int v);
+		statement &bind(unsigned v);
+		statement &bind(long v);
+		statement &bind(unsigned long v);
+		statement &bind(long long v);
+		statement &bind(unsigned long long v);
+		statement &bind(double v);
+		statement &bind(long double v);
+		statement &bind(std::string const &v);
+		statement &bind(char const *s);
+		statement &bind(char const *b,char const *e);
+		statement &bind(std::tm const &v);
+		statement &bind(std::istream &v);
+		statement &bind_null();
+
+
+		void bind(int col,int v);
+		void bind(int col,unsigned v);
+		void bind(int col,long v);
+		void bind(int col,unsigned long v);
+		void bind(int col,long long v);
+		void bind(int col,unsigned long long v);
+		void bind(int col,double v);
+		void bind(int col,long double v);
+		void bind(int col,std::string const &v);
+		void bind(int col,char const *s);
+		void bind(int col,char const *b,char const *e);
+		void bind(int col,std::tm const &v);
+		void bind(int col,std::istream &v);
+		void bind_null(int col);
+
+		long long last_insert_id();
+		long long sequence_last(std::string const &seq);
+		unsigned long long affected();
+
+		result row();
+		result query();
+		operator result();
+		void exec();
+
+		statement &operator<<(std::string const &v);
+		statement &operator<<(char const *s);
+		statement &operator<<(std::tm const &v);
+		statement &operator<<(std::istream &v);
+		statement &operator<<(void (*manipulator)(statement &st));
+		result operator<<(result (*manipulator)(statement &st));
 
 		template<typename T>
 		statement &operator<<(tags::use_tag<T> const &val)
 		{
-			if(val.tag == null_value) {
-				bind_null();
-			}
-			else {
-				bind(val.value);
-			}
-			return *this;
+			if(val.tag == null_value)
+				return bind_null();
+			else 
+				return bind(val.value);
 		}
 		
 		template<typename T>
@@ -253,120 +278,16 @@ namespace cppdb {
 			return bind(v);
 		}
 		
-		statement &bind(std::string const &v)
-		{
-			stat_->bind(placeholder_++,v);
-			return *this;
-		}
-		statement &bind(char const *s)
-		{
-			stat_->bind(placeholder_++,s);
-			return *this;
-		}
-		statement &bind(char const *b,char const *e)
-		{
-			stat_->bind(placeholder_++,b,e);
-			return *this;
-		}
-		statement &bind(std::tm const &v)
-		{
-			stat_->bind(placeholder_++,v);
-			return *this;
-		}
-		statement &bind(std::istream &v)
-		{
-			stat_->bind(placeholder_++,v);
-			return *this;
-		}
-		template<typename T>
-		statement &bind(T v)
-		{
-			stat_->bind(placeholder_++,v);
-			return *this;
-		}
-		statement &bind(int col,std::string const &v)
-		{
-			stat_->bind(col,v);
-			return *this;
-		}
-		statement &bind(int col,char const *s)
-		{
-			stat_->bind(col,s);
-			return *this;
-		}
-		statement &bind(int col,char const *b,char const *e)
-		{
-			stat_->bind(col,b,e);
-			return *this;
-		}
-		statement &bind(int col,std::tm const &v)
-		{
-			stat_->bind(col,v);
-			return *this;
-		}
-		statement &bind(int col,std::istream &v)
-		{
-			stat_->bind(col,v);
-			return *this;
-		}
-		template<typename T>
-		statement &bind(int col,T v)
-		{
-			stat_->bind(col,v);
-			return *this;
-		}
-		statement &bind_null()
-		{
-			stat_->bind_null(placeholder_++);
-			return *this;
-		}
-		statement &bind_null(int col)
-		{
-			stat_->bind_null(col);
-			return *this;
-		}
-		long long sequence_last(std::string const &seq = std::string())
-		{
-			return stat_->sequence_last(seq);
-		}
-		unsigned long long affected()
-		{
-			return stat_->affected();
-		}
-		result row()
-		{
-			ref_ptr<backend::result> backend_res = stat_->query();
-			result res(backend_res,stat_,conn_);
-			if(res.next()) {
-				if(res.res_->has_next() == backend::result::next_row_exists) {
-					throw multiple_rows_query();
-				}
-			}
-			return res;
-		}
-		result query()
-		{
-			ref_ptr<backend::result> res(stat_->query());
-			return result(res,stat_,conn_);
-		}
-		operator result()
-		{
-			return query();
-		}
-		void exec() 
-		{
-			stat_->exec();
-		}
-		statement(ref_ptr<backend::statement> stat,ref_ptr<backend::connection> conn) :
-			placeholder_(1),
-			stat_(stat),
-			conn_(conn)
-		{
-		}
 	private:
+		statement(ref_ptr<backend::statement> stat,ref_ptr<backend::connection> conn);
+
+		friend class session;
+
 		int placeholder_;
 		ref_ptr<backend::statement> stat_;
 		ref_ptr<backend::connection> conn_;
+		struct data;
+		std::auto_ptr<data> d;
 	};
 
 
@@ -385,93 +306,61 @@ namespace cppdb {
 		return st.row();
 	}
 
-	class session {
+	class CPPDB_API session {
 	public:
-		statement prepare(std::string const &query)
-		{
-			ref_ptr<backend::statement> stat_ptr(conn_->prepare(query));
-			statement stat(stat_ptr,conn_);
-			return stat;
-		}
-		statement operator<<(std::string const &q)
-		{
-			return prepare(q);
-		}
-		statement operator<<(char const *s)
-		{
-			return prepare(s);
-		}
-		void begin()
-		{
-			conn_->begin();
-		}
-		void commit()
-		{
-			conn_->commit();
-		}
-		void rollback()
-		{
-			conn_->rollback();
-		}
-		std::string escape(char const *b,char const *e)
-		{
-			return conn_->escape(b,e);
-		}
-		std::string escape(char const *s)
-		{
-			return conn_->escape(s);
-		}
-		std::string escape(std::string const &s)
-		{
-			return conn_->escape(s);
-		}
-		std::string driver()
-		{
-			return conn_->driver();
-		}
-		std::string engine()
-		{
-			return conn_->engine();
-		}
-		session(ref_ptr<backend::connection> conn);
+
 		session();
+		session(session const &);
+		session const &operator=(session const &);
 		~session();
+
 		session(std::string const &cs);
+		session(ref_ptr<backend::connection> conn);
+		
 		void open(std::string const &cs);
 		void close();
+		bool is_open();
+
+		statement prepare(std::string const &query);
+		statement operator<<(std::string const &q);
+		statement operator<<(char const *s);
+
+
+		statement create_statement(std::string const &q);
+		statement create_prepared_statement(std::string const &q);
+		statement create_prepared_uncached_statement(std::string const &q);
+
+		void clear_cache();
+
+		void begin();
+		void commit();
+		void rollback();
+
+		std::string escape(char const *b,char const *e);
+		std::string escape(char const *s);
+		std::string escape(std::string const &s);
+		std::string driver();
+		std::string engine();
+
 	private:
+		struct data;
+		std::auto_ptr<data> d;
 		ref_ptr<backend::connection> conn_;
 	};
 
-	class transaction {
+	class CPPDB_API transaction {
 		transaction(transaction const &);
 		void operator=(transaction const &);
 	public:
-		transaction(session &s) :
-			s_(s),
-			commited_(false)
-		{
-			s_.begin();
-		}
-		
-		void commit()
-		{
-			s_.commit();
-			commited_ =true;
-		}
-		void rollback()
-		{
-			if(!commited_)
-				s_.rollback();
-			commited_=true;
-		}
-		~transaction()
-		{
-			rollback();
-		}
+		transaction(session &s);
+		~transaction();
+		void commit();
+		void rollback();
 	private:
-		session &s_;
+		struct data;
+		session *s_;
 		bool commited_;
+		std::auto_ptr<data> d;
 	};
 
 

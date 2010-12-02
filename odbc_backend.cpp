@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include "backend.h"
 #include "utils.h"
 #include <list>

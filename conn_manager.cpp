@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include "conn_manager.h"
 #include "backend.h"
 #include "pool.h"

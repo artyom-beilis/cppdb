@@ -1,7 +1,9 @@
+#define CPPDB_SOURCE
 #include "utils.h"
 #include "errors.h"
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include <sstream>
 #include <locale>
 
@@ -13,6 +15,12 @@ namespace cppdb {
 		return buf;
 	}
 
+	std::tm parse_time(std::string const &v)
+	{
+		if(strlen(v.c_str())!=v.size())
+			throw bad_value_cast();
+		return parse_time(v.c_str());
+	}
 	std::tm parse_time(char const *v)
 	{
 		std::tm t=std::tm();
