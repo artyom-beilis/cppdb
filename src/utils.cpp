@@ -1,6 +1,6 @@
 #define CPPDB_SOURCE
-#include "utils.h"
-#include "errors.h"
+#include <cppdb/utils.h>
+#include <cppdb/errors.h>
 #include <time.h>
 #include <stdio.h>
 #include <string.h>

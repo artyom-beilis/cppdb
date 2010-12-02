@@ -1,9 +1,9 @@
 #ifndef CPPDB_CONN_MANAGER_H
 #define CPPDB_CONN_MANAGER_H
 
-#include "defs.h"
-#include "ref_ptr.h"
-#include "mutex.h"
+#include <cppdb/defs.h>
+#include <cppdb/ref_ptr.h>
+#include <cppdb/mutex.h>
 #include <map>
 #include <string>
 #include <memory>

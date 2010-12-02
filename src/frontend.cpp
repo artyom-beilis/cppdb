@@ -1,7 +1,7 @@
 #define CPPDB_SOURCE
-#include "frontend.h"
-#include "backend.h"
-#include "conn_manager.h"
+#include <cppdb/frontend.h>
+#include <cppdb/backend.h>
+#include <cppdb/conn_manager.h>
 
 namespace cppdb {
 	struct result::data {};

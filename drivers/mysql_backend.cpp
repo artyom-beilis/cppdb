@@ -1,9 +1,9 @@
 #define CPPDB_SOURCE
 #include <mysql/mysql.h>
 
-#include "backend.h"
-#include "errors.h"
-#include "utils.h"
+#include <cppdb/backend.h>
+#include <cppdb/errors.h>
+#include <cppdb/utils.h>
 #include <sstream>
 #include <vector>
 #include <limits>

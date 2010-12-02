@@ -1,7 +1,7 @@
 #ifndef CPPDB_MUTEX_H
 #define CPPDB_MUTEX_H
 
-#include "defs.h"
+#include <cppdb/defs.h>
 
 namespace cppdb {
 

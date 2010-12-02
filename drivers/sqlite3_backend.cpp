@@ -1,9 +1,9 @@
 #define CPPDB_SOURCE
 #include <sqlite3.h>
 
-#include "backend.h"
-#include "errors.h"
-#include "utils.h"
+#include <cppdb/backend.h>
+#include <cppdb/errors.h>
+#include <cppdb/utils.h>
 
 #include <sstream>
 #include <limits>
@@ -302,7 +302,7 @@ namespace cppdb {
 				reset_ = false;
 				return new result(st_,conn_);
 			}
-			virtual long long sequence_last(std::string const &name)
+			virtual long long sequence_last(std::string const &/*name*/)
 			{
 				return sqlite3_last_insert_rowid(conn_);
 			}
