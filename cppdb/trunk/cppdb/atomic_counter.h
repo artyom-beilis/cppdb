@@ -1,7 +1,7 @@
 #ifndef CPPDB_ATOMIC_COUNT_H
 #define CPPDB_ATOMIC_COUNT_H
 
-#include "defs.h"
+#include <cppdb/defs.h>
 
 
 namespace cppdb {

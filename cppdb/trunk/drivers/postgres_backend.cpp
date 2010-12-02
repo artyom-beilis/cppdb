@@ -1,9 +1,9 @@
 #define CPPDB_SOURCE
 #include <postgresql/libpq-fe.h>
 #include <postgresql/libpq/libpq-fs.h>
-#include "backend.h"
-#include "errors.h"
-#include "utils.h"
+#include <cppdb/backend.h>
+#include <cppdb/errors.h>
+#include <cppdb/utils.h>
 #include <sstream>
 #include <vector>
 #include <limits>

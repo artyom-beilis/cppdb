@@ -1,8 +1,8 @@
 #define CPPDB_SOURCE
-#include "pool.h"
-#include "backend.h"
-#include "utils.h"
-#include "driver_manager.h"
+#include <cppdb/pool.h>
+#include <cppdb/backend.h>
+#include <cppdb/utils.h>
+#include <cppdb/driver_manager.h>
 
 #include <stdlib.h>
 
@@ -32,10 +32,6 @@ namespace cppdb {
 		life_time_ = ci_.get("@pool_max_idle",600);
 	}
 		
-	void pool::init(connection_info const &ci)
-	{
-	}
-	
 	pool::~pool()
 	{
 	}

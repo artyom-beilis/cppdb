@@ -1,7 +1,7 @@
 #ifndef CPPDB_UTIL_H
 #define CPPDB_UTIL_H
 
-#include "defs.h"
+#include <cppdb/defs.h>
 #include <string>
 #include <ctime>
 #include <map>

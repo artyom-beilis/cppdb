@@ -1,7 +1,7 @@
 #define CPPDB_SOURCE
-#include "backend.h"
-#include "utils.h"
-#include "pool.h"
+#include <cppdb/backend.h>
+#include <cppdb/utils.h>
+#include <cppdb/pool.h>
 #include <iostream>
 #include <map>
 #include <list>

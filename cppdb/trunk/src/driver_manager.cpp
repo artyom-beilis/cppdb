@@ -1,9 +1,9 @@
 #define CPPDB_SOURCE
-#include "driver_manager.h"
-#include "shared_object.h"
-#include "backend.h"
-#include "utils.h"
-#include "mutex.h"
+#include <cppdb/driver_manager.h>
+#include <cppdb/shared_object.h>
+#include <cppdb/backend.h>
+#include <cppdb/utils.h>
+#include <cppdb/mutex.h>
 
 #include <vector>
 #include <list>

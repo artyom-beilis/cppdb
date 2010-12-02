@@ -1,8 +1,8 @@
 #ifndef CPPDB_SHARED_OBJECT_H
 #define CPPDB_SHARED_OBJECT_H
 
-#include "defs.h"
-#include "ref_ptr.h"
+#include <cppdb/defs.h>
+#include <cppdb/ref_ptr.h>
 
 
 namespace cppdb {

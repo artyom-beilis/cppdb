@@ -1,10 +1,10 @@
 #ifndef CPPDB_POOL_H
 #define CPPDB_POOL_H
 
-#include "defs.h"
-#include "ref_ptr.h"
-#include "mutex.h"
-#include "utils.h"
+#include <cppdb/defs.h>
+#include <cppdb/ref_ptr.h>
+#include <cppdb/mutex.h>
+#include <cppdb/utils.h>
 #include <memory>
 #include <list>
 
@@ -32,7 +32,6 @@ namespace cppdb {
 
 	private:
 		ref_ptr<backend::connection> get();
-		void init(connection_info const &ci);
 
 		struct data;
 		std::auto_ptr<data> d;

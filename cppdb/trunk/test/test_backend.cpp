@@ -1,15 +1,10 @@
-#include "backend.h"
-#include "driver_manager.h"
+#include <cppdb/backend.h>
+#include <cppdb/driver_manager.h>
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
 #include <memory>
 #include <stdlib.h>
-
-extern "C" { 
-	cppdb::backend::connection *cppdb_sqlite3_get_connection(); 
-	cppdb::backend::connection *cppdb_postgres_get_connection();
-}
 
 using namespace std;
 

@@ -1,8 +1,8 @@
 #ifndef CPPDB_FRONTEND_H
 #define CPPDB_FRONEND_H
-#include "defs.h"
-#include "errors.h"
-#include "ref_ptr.h"
+#include <cppdb/defs.h>
+#include <cppdb/errors.h>
+#include <cppdb/ref_ptr.h>
 
 #include <iosfwd>
 #include <ctime>

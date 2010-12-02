@@ -1,5 +1,5 @@
 #define CPPDB_SOURCE
-#include "shared_object.h"
+#include <cppdb/shared_object.h>
 
 #include <string>
 

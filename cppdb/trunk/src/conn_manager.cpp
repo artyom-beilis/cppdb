@@ -1,8 +1,8 @@
 #define CPPDB_SOURCE
-#include "conn_manager.h"
-#include "backend.h"
-#include "pool.h"
-#include "driver_manager.h"
+#include <cppdb/conn_manager.h>
+#include <cppdb/backend.h>
+#include <cppdb/pool.h>
+#include <cppdb/driver_manager.h>
 
 namespace cppdb {
 	struct connections_manager::data{};

@@ -1,7 +1,7 @@
 #ifndef CPPDB_REF_PTR_H
 #define CPPDB_REF_PTR_H
-#include "errors.h"
-#include "atomic_counter.h"
+#include <cppdb/errors.h>
+#include <cppdb/atomic_counter.h>
 
 namespace cppdb {
 	template<typename T>

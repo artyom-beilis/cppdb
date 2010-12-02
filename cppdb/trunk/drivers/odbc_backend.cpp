@@ -1,6 +1,6 @@
 #define CPPDB_SOURCE
-#include "backend.h"
-#include "utils.h"
+#include <cppdb/backend.h>
+#include <cppdb/utils.h>
 #include <list>
 #include <vector>
 #include <iostream>
@@ -142,7 +142,7 @@ namespace utf8 {
 	};
 	inline seq encode(odbc_u32 value)
 	{
-		seq out={ {0} };
+		seq out=seq();
 		if(value <=0x7F) {
 			out.c[0]=value;
 			out.len=1;
@@ -212,7 +212,7 @@ namespace utf16 {
 	};
 	inline seq encode(odbc_u32 u)
 	{
-		seq out={ {0} };
+		seq out=seq();
 		if(u<=0xFFFF) {
 			out.c[0]=u;
 			out.len=1;
@@ -1130,7 +1130,7 @@ public:
 	{
 		return escape(s,s+strlen(s));
 	}
-	virtual std::string escape(char const *b,char const *e)
+	virtual std::string escape(char const * /*b*/,char const * /*e*/)
 	{
 		throw not_supported_by_backend("cppcms::odbc:: string escaping is not supported");
 	}

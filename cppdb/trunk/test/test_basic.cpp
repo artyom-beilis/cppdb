@@ -1,4 +1,4 @@
-#include "frontend.h"
+#include <cppdb/frontend.h>
 #include <iostream>
 #include <sstream>
 
@@ -78,7 +78,7 @@ int main(int argc,char **argv)
 		while(res.next()){
 			double f=-1;
 			int id=-1,k=-1;
-			std::tm atime={0};
+			std::tm atime=std::tm();
 			std::string name="nonset";
 			cppdb::null_tag_type tag;
 			res >> id >> k >> cppdb::into(f,tag) >> atime >> name;

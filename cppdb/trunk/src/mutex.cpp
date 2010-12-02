@@ -1,5 +1,5 @@
 #define CPPDB_SOURCE
-#include "mutex.h"
+#include <cppdb/mutex.h>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
 

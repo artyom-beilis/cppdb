@@ -16,6 +16,9 @@ option(ODBC_BACKEND_INTERNAL	"Link odbc backend into the libcppdb" OFF)
 set(CPPDB_VERSION 0.0.1)
 set(CPPDB_SOVERSION 0)
 
+include_directories(.)
+
+
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 
@@ -105,15 +108,15 @@ if(CPPDB_HAVE_MAC_OS_X_ATOMIC)
 endif()
 
 set(LIBSRC 
-	utils.cpp
-	mutex.cpp
-	driver_manager.cpp
-	conn_manager.cpp
-	shared_object.cpp
-	pool.cpp
-	backend.cpp
-	frontend.cpp
-	atomic_counter.cpp
+	src/utils.cpp
+	src/mutex.cpp
+	src/driver_manager.cpp
+	src/conn_manager.cpp
+	src/shared_object.cpp
+	src/pool.cpp
+	src/backend.cpp
+	src/frontend.cpp
+	src/atomic_counter.cpp
 	)
 
 
@@ -121,24 +124,24 @@ set(LIBSRC
 if(ENABLE_SQLITE3)
 	add_definitions(-DCPPDB_WITH_SQLITE3)
 	include_directories(${SQLITE3_PATH})
-	set(LIBSRC ${LIBSRC} sqlite3_backend.cpp)
+	set(LIBSRC ${LIBSRC} drivers/sqlite3_backend.cpp)
 endif()
 
 if(ENABLE_PQ)
-	set(LIBSRC ${LIBSRC} postgres_backend.cpp)
+	set(LIBSRC ${LIBSRC} drivers/postgres_backend.cpp)
 	add_definitions(-DCPPDB_WITH_PQ)
 	include_directories(${PQ_PATH})
 endif()
 
 if(ENABLE_MYSQL)
-	set(LIBSRC ${LIBSRC} mysql_backend.cpp)
+	set(LIBSRC ${LIBSRC} drivers/mysql_backend.cpp)
 	add_definitions(-DCPPDB_WITH_MYSQL)
 	include_directories(${MYSQL_PATH})
 endif()
 
 
 if(ENABLE_ODBC)
-	set(LIBSRC ${LIBSRC} odbc_backend.cpp)
+	set(LIBSRC ${LIBSRC} drivers/odbc_backend.cpp)
 	add_definitions(-DCPPDB_WITH_ODBC)
 	include_directories(${ODBC_PATH})
 endif()
@@ -164,9 +167,9 @@ if(NOT WIN32)
 	target_link_libraries(cppdb ${DL_LIB})
 endif()
 
-add_executable(test_perf test_perf.cpp)
-add_executable(test_basic test_basic.cpp)
-add_executable(test_backend test_backend.cpp)
+add_executable(test_perf test/test_perf.cpp)
+add_executable(test_basic test/test_basic.cpp)
+add_executable(test_backend test/test_backend.cpp)
 
 target_link_libraries(test_perf cppdb)
 target_link_libraries(test_basic cppdb)
