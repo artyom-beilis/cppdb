@@ -30,7 +30,7 @@ namespace cppdb {
 
 	class invalid_column : public cppdb_error {
 	public:
-		invalid_column() : cppdb_error("cppdb::invalid_colunm attempt access to invalid column")
+		invalid_column() : cppdb_error("cppdb::invalid_column attempt access to invalid column")
 		{
 		}
 	};
