@@ -28,16 +28,16 @@
 
 extern "C" {
 	#ifdef CPPDB_WITH_SQLITE3 
-	CPPDB_API cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs);
+	cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs);
 	#endif
 	#ifdef CPPDB_WITH_PQ 
-	CPPDB_API cppdb::backend::connection *cppdb_postgresql_get_connection(cppdb::connection_info const &cs);
+	cppdb::backend::connection *cppdb_postgresql_get_connection(cppdb::connection_info const &cs);
 	#endif
 	#ifdef CPPDB_WITH_ODBC
-	CPPDB_API cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs);
+	cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs);
 	#endif
 	#ifdef CPPDB_WITH_MYSQL
-	CPPDB_API cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs);
+	cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs);
 	#endif
 }
 

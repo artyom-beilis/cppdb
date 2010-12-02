@@ -16,7 +16,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#define CPPDB_SOURCE
+#define CPPDB_DRIVER_SOURCE
 #include <mysql/mysql.h>
 
 #include <cppdb/backend.h>
@@ -1306,7 +1306,7 @@ private:
 } // cppdb
 
 extern "C" {
-	CPPDB_API cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs)
+	CPPDB_DRIVER_API cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::mysql_backend::connection(cs);
 	}

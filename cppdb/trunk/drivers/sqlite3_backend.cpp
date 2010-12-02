@@ -16,7 +16,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#define CPPDB_SOURCE
+#define CPPDB_DRIVER_SOURCE
 #include <sqlite3.h>
 
 #include <cppdb/backend.h>
@@ -480,7 +480,7 @@ namespace cppdb {
 } // cppdb
 
 extern "C" {
-	CPPDB_API cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs)
+	CPPDB_DRIVER_API cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::sqlite3_backend::connection(cs);
 	}
