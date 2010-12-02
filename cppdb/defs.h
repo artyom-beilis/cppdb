@@ -20,17 +20,29 @@
 #define CPPDB_DEFS_H
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__CYGWIN__)
-#  if defined(DLL_EXPORT) || defined(CPPDB_EXPORT)
+#  if defined(DLL_EXPORT) || defined(CPPDB_EXPORTS)
 #    ifdef CPPDB_SOURCE
 #      define CPPDB_API __declspec(dllexport)
 #    else
 #      define CPPDB_API __declspec(dllimport)
 #    endif
-#  else
-#    define CPPDB_API
 #  endif
-#else
+#  if defined(DLL_EXPORT) || defined(CPPDB_DRIVER_EXPORTS)
+#    ifdef CPPDB_DRIVER_SOURCE
+#      define CPPDB_DRIVER_API __declspec(dllexport)
+#    else
+#      define CPPDB_DRIVER_API __declspec(dllimport)
+#    endif
+#  endif
+#endif
+
+
+#ifndef CPPDB_API
 #  define CPPDB_API
+#endif
+
+#ifndef CPPDB_DRIVER_API
+#  define CPPDB_DRIVER_API
 #endif
 
 #endif

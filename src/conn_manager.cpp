@@ -48,7 +48,7 @@ namespace cppdb {
 	ref_ptr<backend::connection> connections_manager::open(connection_info const &ci)
 	{
 		if(ci.get("@pool_size",0)==0) {
-			driver_manager::instance().connect(ci);
+			return driver_manager::instance().connect(ci);
 		}
 		ref_ptr<pool> p;
 		{

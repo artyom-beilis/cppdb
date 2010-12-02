@@ -16,7 +16,7 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#define CPPDB_SOURCE
+#define CPPDB_DRIVER_SOURCE
 #include <cppdb/backend.h>
 #include <cppdb/utils.h>
 #include <list>
@@ -1184,7 +1184,7 @@ private:
 } // cppdb
 
 extern "C" {
-	CPPDB_API cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs)
+	CPPDB_DRIVER_API cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::odbc_backend::connection(cs);
 	}

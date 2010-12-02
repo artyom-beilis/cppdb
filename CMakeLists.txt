@@ -215,6 +215,7 @@ set(CPPDB_SRC
 
 add_library(cppdb SHARED ${CPPDB_SRC})
 add_library(cppdb-static STATIC ${CPPDB_SRC})
+set_target_properties(cppdb PROPERTIES COMPILE_DEFINITIONS CPPDB_EXPORTS)
 
 if(NOT WIN32)
 	target_link_libraries(cppdb ${DL_LIB})
@@ -223,6 +224,8 @@ endif()
 # Link and backends configuration
 
 set(INST_LIBS)
+
+
 
 foreach(LIB ${BACKEND_LIBRARIES} cppdb)
 	
@@ -234,11 +237,18 @@ foreach(LIB ${BACKEND_LIBRARIES} cppdb)
 		set_target_properties(${LIB} PROPERTIES VERSION ${CPPDB_VERSION} SOVERSION ${CPPDB_SOVERSION})
 	endif()
 
-	set_target_properties(${LIB} PROPERTIES COMPILE_DEFINITIONS CPPDB_EXPORT)
+    
 	set_target_properties(${LIB} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-	set_target_properties(${LIB} PROPERTIES OUTPUT_NAME ${LIB})
+	set_target_properties(${LIB} PROPERTIES OUTPUT_NAME "${LIB}")
 	set_target_properties(${LIB}-static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 	set_target_properties(${LIB}-static PROPERTIES OUTPUT_NAME "${LIB}")
+	set_target_properties(${LIB}-static PROPERTIES PREFIX "lib") # Make sure import and normal library do not collide
+
+ endforeach()
+
+foreach(LIB ${BACKEND_LIBRARIES})
+	set_target_properties(${LIB} PROPERTIES COMPILE_DEFINITIONS CPPDB_DRIVER_EXPORTS)
+	target_link_libraries(${LIB} cppdb)
 endforeach()
 
 foreach(LIB ${INTERNAL_LIBRARIES})
