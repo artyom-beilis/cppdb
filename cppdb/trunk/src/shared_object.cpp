@@ -18,7 +18,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 #define CPPDB_SOURCE
 #include <cppdb/shared_object.h>
-
 #include <string>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
