@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include "driver_manager.h"
 #include "shared_object.h"
 #include "backend.h"
@@ -9,42 +10,23 @@
 
 extern "C" {
 	#ifdef CPPDB_WITH_SQLITE3 
-	cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs);
+	CPPDB_API cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs);
 	#endif
 	#ifdef CPPDB_WITH_PQ 
-	cppdb::backend::connection *cppdb_postgresql_get_connection(cppdb::connection_info const &cs);
+	CPPDB_API cppdb::backend::connection *cppdb_postgresql_get_connection(cppdb::connection_info const &cs);
 	#endif
 	#ifdef CPPDB_WITH_ODBC
-	cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs);
+	CPPDB_API cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs);
 	#endif
 	#ifdef CPPDB_WITH_MYSQL
-	cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs);
+	CPPDB_API cppdb::backend::connection *cppdb_mysql_get_connection(cppdb::connection_info const &cs);
 	#endif
 }
 
 
 namespace cppdb {
 
-	extern "C" {
-		typedef cppdb::backend::connection *(*connect_function_type)(connection_info const &ci);
-	}
-
-	class static_driver : public backend::driver {
-	public:
-		static_driver(connect_function_type c) : connect_(c)
-		{
-		}
-		virtual bool in_use()
-		{
-			return true;
-		}
-		virtual backend::connection *open(connection_info const &ci)
-		{
-			return connect_(ci);
-		}
-	private:
-		connect_function_type connect_;
-	};
+	typedef backend::static_driver::connect_function_type connect_function_type;
 
 	class so_driver : public backend::loadable_driver {
 	public:
@@ -121,7 +103,7 @@ namespace cppdb {
 	}
 
 	// TODO Fix Me
-	#define CPPDB_LIBRARY_SO_VERSION 
+	#define CPPDB_LIBRARY_SO_VERSION "0"
 	// TODO Fix Me
 
 	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__CYGWIN__)
@@ -203,22 +185,22 @@ namespace cppdb {
 				driver_manager::instance(); 
 				#ifdef CPPDB_WITH_SQLITE3 
 				driver_manager::instance().install_driver(
-					"sqlite3",new static_driver(cppdb_sqlite3_get_connection)
+					"sqlite3",new backend::static_driver(cppdb_sqlite3_get_connection)
 				);
 				#endif
 				#ifdef CPPDB_WITH_ODBC
 				driver_manager::instance().install_driver(
-					"odbc",new static_driver(cppdb_odbc_get_connection)
+					"odbc",new backend::static_driver(cppdb_odbc_get_connection)
 				);
 				#endif
 				#ifdef CPPDB_WITH_PQ 
 				driver_manager::instance().install_driver(
-					"postgresql",new static_driver(cppdb_postgresql_get_connection)
+					"postgresql",new backend::static_driver(cppdb_postgresql_get_connection)
 				);
 				#endif
 				#ifdef CPPDB_WITH_MYSQL
 				driver_manager::instance().install_driver(
-					"mysql",new static_driver(cppdb_mysql_get_connection)
+					"mysql",new backend::static_driver(cppdb_mysql_get_connection)
 				);
 				#endif
 			}

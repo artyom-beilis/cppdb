@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include "shared_object.h"
 
 #include <string>

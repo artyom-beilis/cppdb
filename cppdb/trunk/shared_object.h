@@ -1,11 +1,12 @@
 #ifndef CPPDB_SHARED_OBJECT_H
 #define CPPDB_SHARED_OBJECT_H
 
+#include "defs.h"
 #include "ref_ptr.h"
 
 
 namespace cppdb {
-	class shared_object : public ref_counted {
+	class CPPDB_API shared_object : public ref_counted {
 		shared_object() : handle_(0) {}
 		shared_object(std::string name,void *h);
 		shared_object(shared_object const &);

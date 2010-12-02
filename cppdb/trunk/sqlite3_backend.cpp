@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include <sqlite3.h>
 
 #include "backend.h"

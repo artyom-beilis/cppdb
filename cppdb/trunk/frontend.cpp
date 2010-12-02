@@ -1,31 +1,9 @@
+#define CPPDB_SOURCE
 #include "frontend.h"
+#include "backend.h"
 #include "conn_manager.h"
 
 namespace cppdb {
-	session::session()
-	{
-	}
-	session::session(ref_ptr<backend::connection> conn) : 
-		conn_(conn) 
-	{
-	}
-	session::~session()
-	{
-	}
-	session::session(std::string const &cs)
-	{
-		open(cs);
-	}
-	
-	void session::open(std::string const &cs)
-	{
-		conn_ = connections_manager::instance().open(cs);
-	}
-	void session::close()
-	{
-		conn_.reset();
-	}
-
 	struct result::data {};
 
 	result::result() :
@@ -190,6 +168,376 @@ namespace cppdb {
 	bool result::fetch(std::string &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(std::tm &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(std::ostream &v) { return res_->fetch(current_col_++,v); }
+
+
+
+	struct statement::data {};
+
+	statement::statement() : placeholder_(1) {}
+	statement::~statement()
+	{
+		stat_.reset();
+		conn_.reset();
+	}
+
+	statement::statement(statement const &other) :
+		placeholder_(other.placeholder_),
+		stat_(other.stat_),
+		conn_(other.conn_)
+	{
+	}
+	statement const &statement::operator=(statement const &other)
+	{
+		placeholder_ = other.placeholder_;
+		stat_=other.stat_;
+		conn_=other.conn_;
+		return *this;
+	}
+
+	statement::statement(ref_ptr<backend::statement> stat,ref_ptr<backend::connection> conn) :
+		placeholder_(1),
+		stat_(stat),
+		conn_(conn)
+	{
+	}
+
+	void statement::reset()
+	{
+		placeholder_ = 1;
+		stat_->reset();
+	}
+
+	statement &statement::operator<<(std::string const &v)
+	{
+		return bind(v);
+	}
+	statement &statement::operator<<(char const *s)
+	{
+		return bind(s);
+	}
+	
+	statement &statement::operator<<(std::tm const &v)
+	{
+		return bind(v);
+	}
+	
+	statement &statement::operator<<(std::istream &v)
+	{
+		return bind(v);
+	}
+
+	statement &statement::operator<<(void (*manipulator)(statement &st))
+	{
+		manipulator(*this);
+		return *this;
+	}
+	result statement::operator<<(result (*manipulator)(statement &st))
+	{
+		return manipulator(*this);
+	}
+
+	statement &statement::bind(int v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(unsigned v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(long v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(unsigned long v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(long long v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(unsigned long long v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(double v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(long double v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+
+	statement &statement::bind(std::string const &v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(char const *s)
+	{
+		stat_->bind(placeholder_++,s);
+		return *this;
+	}
+	statement &statement::bind(char const *b,char const *e)
+	{
+		stat_->bind(placeholder_++,b,e);
+		return *this;
+	}
+	statement &statement::bind(std::tm const &v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind(std::istream &v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
+	statement &statement::bind_null()
+	{
+		stat_->bind_null(placeholder_++);
+		return *this;
+	}
+
+
+	void statement::bind(int col,std::string const &v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,char const *s)
+	{
+		stat_->bind(col,s);
+	}
+	void statement::bind(int col,char const *b,char const *e)
+	{
+		stat_->bind(col,b,e);
+	}
+	void statement::bind(int col,std::tm const &v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,std::istream &v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,int v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,unsigned v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,long v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,unsigned long v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,long long v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,unsigned long long v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,double v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind(int col,long double v)
+	{
+		stat_->bind(col,v);
+	}
+	void statement::bind_null(int col)
+	{
+		stat_->bind_null(col);
+	}
+
+	long long statement::last_insert_id()
+	{
+		return stat_->sequence_last(std::string());
+	}
+
+	long long statement::sequence_last(std::string const &seq)
+	{
+		return stat_->sequence_last(seq);
+	}
+	unsigned long long statement::affected()
+	{
+		return stat_->affected();
+	}
+
+	result statement::row()
+	{
+		ref_ptr<backend::result> backend_res = stat_->query();
+		result res(backend_res,stat_,conn_);
+		if(res.next()) {
+			if(res.res_->has_next() == backend::result::next_row_exists) {
+				throw multiple_rows_query();
+			}
+		}
+		return res;
+	}
+	
+	result statement::query()
+	{
+		ref_ptr<backend::result> res(stat_->query());
+		return result(res,stat_,conn_);
+	}
+	statement::operator result()
+	{
+		return query();
+	}
+	void statement::exec() 
+	{
+		stat_->exec();
+	}
+
+	struct session::data {};
+
+	session::session()
+	{
+	}
+	session::session(ref_ptr<backend::connection> conn) : 
+		conn_(conn) 
+	{
+	}
+	session::~session()
+	{
+	}
+	session::session(std::string const &cs)
+	{
+		open(cs);
+	}
+	
+	void session::open(std::string const &cs)
+	{
+		conn_ = connections_manager::instance().open(cs);
+	}
+	void session::close()
+	{
+		conn_.reset();
+	}
+
+	bool session::is_open()
+	{
+		return conn_;
+	}
+	
+	statement session::prepare(std::string const &query)
+	{
+		ref_ptr<backend::statement> stat_ptr(conn_->prepare(query));
+		statement stat(stat_ptr,conn_);
+		return stat;
+	}
+	
+	statement session::create_statement(std::string const &query)
+	{
+		ref_ptr<backend::statement> stat_ptr(conn_->get_statement(query));
+		statement stat(stat_ptr,conn_);
+		return stat;
+	}
+	
+	statement session::create_prepared_statement(std::string const &query)
+	{
+		ref_ptr<backend::statement> stat_ptr(conn_->get_prepared_statement(query));
+		statement stat(stat_ptr,conn_);
+		return stat;
+	}
+	
+	statement session::create_prepared_uncached_statement(std::string const &query)
+	{
+		ref_ptr<backend::statement> stat_ptr(conn_->get_prepared_uncached_statement(query));
+		statement stat(stat_ptr,conn_);
+		return stat;
+	}
+
+
+	statement session::operator<<(std::string const &q)
+	{
+		return prepare(q);
+	}
+	statement session::operator<<(char const *s)
+	{
+		return prepare(s);
+	}
+	void session::begin()
+	{
+		conn_->begin();
+	}
+	void session::commit()
+	{
+		conn_->commit();
+	}
+	void session::rollback()
+	{
+		conn_->rollback();
+	}
+	std::string session::escape(char const *b,char const *e)
+	{
+		return conn_->escape(b,e);
+	}
+	std::string session::escape(char const *s)
+	{
+		return conn_->escape(s);
+	}
+	std::string session::escape(std::string const &s)
+	{
+		return conn_->escape(s);
+	}
+	std::string session::driver()
+	{
+		return conn_->driver();
+	}
+	std::string session::engine()
+	{
+		return conn_->engine();
+	}
+	
+	struct transaction::data {};
+
+	transaction::transaction(session &s) :
+		s_(&s),
+		commited_(false)
+	{
+		s_->begin();
+	}
+	
+	void transaction::commit()
+	{
+		s_->commit();
+		commited_ =true;
+	}
+	void transaction::rollback()
+	{
+		if(!commited_)
+			s_->rollback();
+		commited_=true;
+	}
+	transaction::~transaction()
+	{
+		rollback();
+	}
+	
+	void session::clear_cache()
+	{
+		conn_->clear_cache();
+	}
+
+
 
 
 }  // cppdb

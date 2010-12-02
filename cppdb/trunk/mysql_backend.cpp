@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include <mysql/mysql.h>
 
 #include "backend.h"

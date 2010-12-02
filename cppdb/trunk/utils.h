@@ -1,22 +1,23 @@
 #ifndef CPPDB_UTIL_H
 #define CPPDB_UTIL_H
+
+#include "defs.h"
 #include <string>
 #include <ctime>
 #include <map>
 
+
 namespace cppdb {
-	std::tm parse_time(char const *value);
-	std::string format_time(std::tm const &v);
-	inline std::tm parse_time(std::string const &v)
-	{
-		return parse_time(v.c_str());
-	}
 
-	void parse_connection_string(	std::string const &cs,
-					std::string &driver_name,
-					std::map<std::string,std::string> &props);
+	CPPDB_API std::tm parse_time(char const *value);
+	CPPDB_API std::string format_time(std::tm const &v);
+	CPPDB_API std::tm parse_time(std::string const &v);
 
-	class connection_info {
+	CPPDB_API void parse_connection_string(	std::string const &cs,
+						std::string &driver_name,
+						std::map<std::string,std::string> &props);
+
+	class CPPDB_API connection_info {
 	public:
 		std::string connection_string;
 		std::string driver;
@@ -36,5 +37,6 @@ namespace cppdb {
 		}
 
 	};
+
 }
 #endif

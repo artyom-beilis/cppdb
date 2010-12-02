@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include "backend.h"
 #include "utils.h"
 #include "pool.h"
@@ -58,10 +59,10 @@ namespace cppdb {
 			};
 			
 			statements_type statements;
-
 			lru_type lru;
 			size_t size;
 			size_t max_size;
+
 
 			void insert(ref_ptr<statement> st)
 			{
@@ -100,6 +101,13 @@ namespace cppdb {
 				size --;
 				return st;
 			}
+
+			void clear()
+			{
+				lru.clear();
+				statements.clear();
+				size=0;
+			}
 		}; // data
 
 		statements_cache::statements_cache() 
@@ -129,7 +137,7 @@ namespace cppdb {
 		}
 		void statements_cache::clear()
 		{
-			d.reset();
+			d->clear();
 		}
 		statements_cache::~statements_cache()
 		{
@@ -172,6 +180,14 @@ namespace cppdb {
 			st->cache(&cache_);
 			return st;
 		}
+
+		ref_ptr<statement> connection::get_prepared_uncached_statement(std::string const &q)
+		{
+			ref_ptr<statement> st = prepare_statement(q);
+			return st;
+		}
+
+
 
 		connection::connection(connection_info const &info) :
 			pool_(0)
@@ -219,11 +235,30 @@ namespace cppdb {
 			}
 		}
 		
+		connection *driver::connect(connection_info const &cs)
+		{
+			return open(cs);
+		}
 		connection *loadable_driver::connect(connection_info const &cs)
 		{
 			connection *c = open(cs);
 			c->set_driver(ref_ptr<loadable_driver>(this));
 			return c;
+		}
+
+		static_driver::static_driver(connect_function_type c) : connect_(c)
+		{
+		}
+		static_driver::~static_driver()
+		{
+		}
+		bool static_driver::in_use()
+		{
+			return true;
+		}
+		backend::connection *static_driver::open(connection_info const &ci)
+		{
+			return connect_(ci);
 		}
 
 	} // backend

@@ -1,3 +1,4 @@
+#define CPPDB_SOURCE
 #include "pool.h"
 #include "backend.h"
 #include "utils.h"

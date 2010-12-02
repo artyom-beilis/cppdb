@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include "defs.h"
 #include "errors.h"
 #include "ref_ptr.h"
 
@@ -14,7 +15,7 @@ namespace cppdb {
 
 	namespace backend {	
 
-		class result : public ref_counted {
+		class CPPDB_API result : public ref_counted {
 		public:
 			// Begin of API
 			typedef enum {
@@ -175,7 +176,7 @@ namespace cppdb {
 
 		class statements_cache;
 
-		class statement : public ref_counted {
+		class CPPDB_API statement : public ref_counted {
 		public:
 			// Begin of API
 			///
@@ -352,7 +353,7 @@ namespace cppdb {
 			statements_cache *cache_;
 		};
 		
-		class statements_cache {
+		class CPPDB_API statements_cache {
 			statements_cache(statements_cache const &);
 			void operator=(statements_cache const &);
 		public:
@@ -371,24 +372,45 @@ namespace cppdb {
 
 		class connection;
 
-		class driver : public ref_counted {
+		class CPPDB_API driver : public ref_counted {
+			driver(driver const &);
+			void operator=(driver const &);
 		public:
+			driver() {}
 			virtual ~driver() {}
 			virtual bool in_use() = 0;
 			virtual connection *open(connection_info const &cs) = 0;
-			virtual connection *connect(connection_info const &cs)
-			{
-				return open(cs);
-			}
+			virtual connection *connect(connection_info const &cs);
 		};
 		
-		class loadable_driver : public driver {
+		class CPPDB_API loadable_driver : public driver {
+			loadable_driver(loadable_driver const &);
+			void operator=(loadable_driver const &);
 		public:
+			loadable_driver() {}
 			virtual ~loadable_driver() {}
 			virtual connection *connect(connection_info const &cs);
 		};
 
-		class connection : public ref_counted {
+		extern "C" {
+			typedef cppdb::backend::connection *cppdb_backend_connect_function(connection_info const &ci);
+		}
+
+
+		class CPPDB_API static_driver : public driver {
+		public:
+			typedef cppdb_backend_connect_function *connect_function_type;
+
+			static_driver(connect_function_type c);
+			~static_driver();
+			bool in_use();
+			backend::connection *open(connection_info const &ci);
+		private:
+			connect_function_type connect_;
+		};
+
+
+		class CPPDB_API connection : public ref_counted {
 		public:
 			connection(connection_info const &info);
 			virtual ~connection();
@@ -397,6 +419,7 @@ namespace cppdb {
 			static void dispose(connection *c);
 			ref_ptr<statement> prepare(std::string const &q);
 			ref_ptr<statement> get_prepared_statement(std::string const &q);
+			ref_ptr<statement> get_prepared_uncached_statement(std::string const &q);
 			ref_ptr<statement> get_statement(std::string const &q);
 
 			// API 
@@ -448,9 +471,9 @@ namespace cppdb {
 			virtual std::string engine() = 0;
 
 			// API
+			void clear_cache();
 			
 		private:
-			void clear_cache();
 
 			struct data;
 			std::auto_ptr<data> d;

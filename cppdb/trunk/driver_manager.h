@@ -1,6 +1,7 @@
 #ifndef CPPDB_DRIVER_MANAGER_H
 #define CPPDB_DRIVER_MANAGER_H
 
+#include "defs.h"
 #include "ref_ptr.h"
 #include "mutex.h"
 #include <map>
@@ -14,7 +15,7 @@ namespace cppdb {
 	}
 	class connection_info;	
 
-	class driver_manager {
+	class CPPDB_API driver_manager {
 	public:
 		static driver_manager &instance();
 		void install_driver(std::string const &name,ref_ptr<backend::driver> drv);
