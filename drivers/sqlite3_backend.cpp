@@ -480,7 +480,7 @@ namespace cppdb {
 } // cppdb
 
 extern "C" {
-	cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs)
+	CPPDB_API cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::sqlite3_backend::connection(cs);
 	}

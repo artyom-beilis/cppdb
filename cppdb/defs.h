@@ -20,7 +20,7 @@
 #define CPPDB_DEFS_H
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__CYGWIN__)
-#  ifdef DLL_EXPORT
+#  if defined(DLL_EXPORT) || defined(CPPDB_EXPORT)
 #    ifdef CPPDB_SOURCE
 #      define CPPDB_API __declspec(dllexport)
 #    else

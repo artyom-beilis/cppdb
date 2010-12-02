@@ -120,36 +120,54 @@ namespace cppdb {
 		garbage.clear();
 	}
 
-	// TODO Fix Me
-	#define CPPDB_LIBRARY_SO_VERSION "0"
-	// TODO Fix Me
-
 	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__CYGWIN__)
 	
-	#	define CPPDB_LIBRARY_SUFFIX_V1 CPPDB_LIBRARY_SUFFIX
-	#	define CPPDB_LIBRARY_SUFFIX_V2 "-" CPPDB_LIBRARY_SO_VERSION CPPDB_LIBRARY_SUFFIX
+	#	define CPPDB_LIBRARY_SUFFIX_V1 "-" CPPDB_SOVERSION CPPDB_LIBRARY_SUFFIX
+	#	define CPPDB_LIBRARY_SUFFIX_V2 CPPDB_LIBRARY_SUFFIX
 
 	#else
 
-	#	define CPPDB_LIBRARY_SUFFIX_V1 CPPDB_LIBRARY_SUFFIX
-	#	define CPPDB_LIBRARY_SUFFIX_V2 CPPDB_LIBRARY_SUFFIX "." CPPDB_LIBRARY_SO_VERSION
+	#	define CPPDB_LIBRARY_SUFFIX_V1 CPPDB_LIBRARY_SUFFIX "." CPPDB_SOVERSION
+	#	define CPPDB_LIBRARY_SUFFIX_V2 CPPDB_LIBRARY_SUFFIX
 
 	#endif
+
+	#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
+	
+	#	define PATH_SEPARATOR ';'
+
+	#else
+
+	#	define PATH_SEPARATOR ':'
+
+	#endif
+
 
 	ref_ptr<backend::driver> driver_manager::load_driver(connection_info const &conn)
 	{
 		std::vector<std::string> so_names;
 		std::string module;
-		if(!(module=conn.get("cppdb_module")).empty()) {
+		std::vector<std::string> search_paths = search_paths_;
+		std::string mpath=conn.get("@modules_path");
+		if(!mpath.empty()) {
+			size_t sep = mpath.find(PATH_SEPARATOR);
+			search_paths.push_back(mpath.substr(0,sep));
+			while(sep<mpath.size()) {
+				size_t next = mpath.find(PATH_SEPARATOR,sep+1);
+				search_paths.push_back(mpath.substr(sep+1,next - sep+1));
+				sep = next;
+			}
+		}
+		if(!(module=conn.get("@module")).empty()) {
 			so_names.push_back(module);
 		}
 		else {
 			std::string so_name1 = CPPDB_LIBRARY_PREFIX "cppdb_" + conn.driver + CPPDB_LIBRARY_SUFFIX_V1;
 			std::string so_name2 = CPPDB_LIBRARY_PREFIX "cppdb_" + conn.driver + CPPDB_LIBRARY_SUFFIX_V2;
 
-			for(unsigned i=0;i<search_paths_.size();i++) {
-				so_names.push_back(search_paths_[i]+"/" + so_name1);
-				so_names.push_back(search_paths_[i]+"/" + so_name2);
+			for(unsigned i=0;i<search_paths.size();i++) {
+				so_names.push_back(search_paths[i]+"/" + so_name1);
+				so_names.push_back(search_paths[i]+"/" + so_name2);
 			}
 			if(!no_default_directory_) {
 				so_names.push_back(so_name1);

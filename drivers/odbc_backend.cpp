@@ -1184,7 +1184,7 @@ private:
 } // cppdb
 
 extern "C" {
-	cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs)
+	CPPDB_API cppdb::backend::connection *cppdb_odbc_get_connection(cppdb::connection_info const &cs)
 	{
 		return new cppdb::odbc_backend::connection(cs);
 	}
