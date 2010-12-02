@@ -7,172 +7,181 @@
 #include "errors.h"
 #include <assert.h>
 
+///
+/// The namespace of all data related to the cppdb api
+///
+
 namespace cppdb {
 	
+	///
+	/// Null value marker
+	///
 	typedef enum {
-		null_value,
-		not_null_value
+		null_value,  	///< The value is null value
+		not_null_value	///< The valus is not a null value
 	} null_tag_type;
-	
+
+	/// \cond INTERNAL
 	namespace tags {
 		template<typename T>
 		struct into_tag {
-			T *value;
-			null_tag_type *tag;
+			T &value;
+			null_tag_type &tag;
+			into_tag(T &v, null_tag_type &t) : value(v),tag(t) {}
 		};
 
 		template<typename T>
 		struct use_tag {
 			T value;
 			null_tag_type tag;
+			use_tag(T v,null_tag_type t) : value(v),tag(t) {}
 		};
 
 	} // tags
+	/// \endcond
 
 	template<typename T>
 	tags::into_tag<T> into(T &value,null_tag_type &tag)
 	{
-		tags::into_tag<T> res = { &value, &tag };
-		return res;
+		return tags::into_tag<T>(value,tag);
 	}
 
 
 	inline tags::use_tag<std::string const &> use(std::string const &v,null_tag_type tag)
 	{
-		tags::use_tag<std::string const &> res = { v, tag };
-		return res;
+		return tags::use_tag<std::string const &>(v,tag);
 	}
 
 	inline tags::use_tag<char const *> use(char const *v,null_tag_type tag)
 	{
-		tags::use_tag<char const *> res = { v, tag };
-		return res;
+		return tags::use_tag<char const *>(v,tag);
 	}
 	
 	template<typename T>
 	tags::use_tag<T> use(T value,null_tag_type tag)
 	{
-		tags::use_tag<T> res = { value, tag };
-		return res;
+		return tags::use_tag<T>(value,tag);
 	}
+
+	class statement;
 
 	class result {
 	public:
-		result() : eof_(true),current_col_(0)
-		{
-		}
-		result(	ref_ptr<backend::result> res,
-			ref_ptr<backend::statement> stat,
-			ref_ptr<backend::connection> conn,
-			bool fetched=false)
-		: eof_(false),
-		  fetched_(fetched),
-		  current_col_(0),
-		  res_(res),
-		  stat_(stat),
-		  conn_(conn)
-		{
-		}
+		result();
+		~result();
+		result(result const &);
+		result const &operator=(result const &);
 
-		~result()
-		{
-			clear();
-		}
+		int cols();
+		bool next();
 		
-		int cols()
-		{
-			if(res_)
-				return res_->cols();
-			throw empty_row_access();
-		}
+		int index(std::string const &n);
+		std::string name(int col);
+		int find_column(std::string const &name);
+
+		bool is_null(int col);
+		bool is_null(std::string const &n);
+
+		void clear();
+		void rewind_column();
+		bool empty();
+
+		bool fetch(int col,short &v);
+		bool fetch(int col,unsigned short &v);
+		bool fetch(int col,int &v);
+		bool fetch(int col,unsigned &v);
+		bool fetch(int col,long &v);
+		bool fetch(int col,unsigned long &v);
+		bool fetch(int col,long long &v);
+		bool fetch(int col,unsigned long long &v);
+		bool fetch(int col,float &v);
+		bool fetch(int col,double &v);
+		bool fetch(int col,long double &v);
+		bool fetch(int col,std::string &v);
+		bool fetch(int col,std::tm &v);
+		bool fetch(int col,std::ostream &v);
+
+		bool fetch(std::string const &n,short &v);
+		bool fetch(std::string const &n,unsigned short &v);
+		bool fetch(std::string const &n,int &v);
+		bool fetch(std::string const &n,unsigned &v);
+		bool fetch(std::string const &n,long &v);
+		bool fetch(std::string const &n,unsigned long &v);
+		bool fetch(std::string const &n,long long &v);
+		bool fetch(std::string const &n,unsigned long long &v);
+		bool fetch(std::string const &n,float &v);
+		bool fetch(std::string const &n,double &v);
+		bool fetch(std::string const &n,long double &v);
+		bool fetch(std::string const &n,std::string &v);
+		bool fetch(std::string const &n,std::tm &v);
+		bool fetch(std::string const &n,std::ostream &v);
+
+
+		bool fetch(short &v);
+		bool fetch(unsigned short &v);
+		bool fetch(int &v);
+		bool fetch(unsigned &v);
+		bool fetch(long &v);
+		bool fetch(unsigned long &v);
+		bool fetch(long long &v);
+		bool fetch(unsigned long long &v);
+		bool fetch(float &v);
+		bool fetch(double &v);
+		bool fetch(long double &v);
+		bool fetch(std::string &v);
+		bool fetch(std::tm &v);
+		bool fetch(std::ostream &v);
+
 		
 		template<typename T>
 		T get(std::string const &name)
 		{
-			check();
-			return get<T>(res_->name_to_column(name));
+			T v;
+			if(!fetch(name,v))
+				throw null_value_fetch();
+			return v;
 		}
 		
 		template<typename T>
 		T get(int col)
 		{
-			check();
-			T value;
-			if(res_->fetch(col,value))
-				return value;
-			throw null_value_fetch(); 
+			T v;
+			if(!fetch(col,v))
+				throw null_value_fetch();
+			return v;
 		}
 
 		template<typename T>
-		bool fetch(int col,T &value)
+		result &operator>>(tags::into_tag<T> ref)
 		{
-			check();
-			return res_->fetch(col,value);
-		}
-
-		template<typename T>
-		result &operator>>(tags::into_tag<T> value)
-		{
-			check();
-			assert(value.value!=0);
-			assert(value.tag!=0);
-			*value.tag = res_->fetch(current_col_++,*value.value) ? not_null_value :  null_value;
+			if(fetch(ref.value))
+				ref.tag = not_null_value;
+			else
+				ref.tag = null_value;
 			return *this;
-		}
-
-		bool is_null(int col)
-		{
-			check();
-			return res_->is_null(col);
-		}
-		bool is_null(std::string const &n)
-		{
-			check();
-			return res_->is_null(res_->name_to_column(n));
 		}
 
 		template<typename T>
 		result &operator>>(T &value)
 		{
-			check();
-			res_->fetch(current_col_++,value);
+			fetch(value);
 			return *this;
 		}
 
-		bool next()
-		{
-			if(eof_ && fetched_)
-				return false;
-			fetched_=true;
-			current_col_ = 0;
-			eof_ = res_->next()==false;
-			if(eof_) {
-				res_.reset();
-				stat_.reset();
-				conn_.reset();
-			}
-			return !eof_;
-		}
-
-		bool empty()
-		{
-			return eof_ || !fetched_;
-		}
-		void clear()
-		{
-			eof_ = true;
-			fetched_ = true;
-			res_.reset();
-			stat_.reset();
-			conn_.reset();
-		}
 		
 	private:
-		void check()
-		{
-			if(empty())
-				throw empty_row_access();
-		}
+		result(	ref_ptr<backend::result> res,
+			ref_ptr<backend::statement> stat,
+			ref_ptr<backend::connection> conn);
+
+		void check();
+		
+		friend class statement;
+
+		struct data;
+
+		std::auto_ptr<data> d;
+
 		bool eof_;
 		bool fetched_;
 		int current_col_;
@@ -326,13 +335,14 @@ namespace cppdb {
 		}
 		result row()
 		{
-			ref_ptr<backend::result> res(stat_->query());
-			if(!res->next())
-				return result();
-			if(res->has_next() == backend::result::next_row_exists) {
-				throw multiple_rows_query();
+			ref_ptr<backend::result> backend_res = stat_->query();
+			result res(backend_res,stat_,conn_);
+			if(res.next()) {
+				if(res.res_->has_next() == backend::result::next_row_exists) {
+					throw multiple_rows_query();
+				}
 			}
-			return result(res,stat_,conn_,true);
+			return res;
 		}
 		result query()
 		{

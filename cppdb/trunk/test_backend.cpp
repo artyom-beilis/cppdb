@@ -271,7 +271,8 @@ void test(std::string conn_str)
 	int sizes[]={	0, // General 0 length string
 			61,62,63,64,65,66,67, // mysql buffer size
 			510,511,512,513,514, // ODBC buffer size in wchars
-			1020,1021,1022,1023,1024,1025,1026,1027 // ODBC buffer size
+			1020,1021,1022,1023,1024,1025,1026,1027, // ODBC buffer size
+			4094,4095,4096,4097,4098// postgresql driver buffer size for LO
 		    };
 	for(unsigned i=0;i<sizeof(sizes)/sizeof(int);i++) {
 		int size = sizes[i];
