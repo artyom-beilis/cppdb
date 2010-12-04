@@ -1,3 +1,21 @@
+///////////////////////////////////////////////////////////////////////////////
+//                                                                             
+//  Copyright (C) 2010  Artyom Beilis (Tonkikh) <artyomtnk@yahoo.com>     
+//                                                                             
+//  This program is free software: you can redistribute it and/or modify       
+//  it under the terms of the GNU Lesser General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Lesser General Public License for more details.
+//
+//  You should have received a copy of the GNU Lesser General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+///////////////////////////////////////////////////////////////////////////////
 #include <cppdb/driver_manager.h>
 #include <cppdb/conn_manager.h>
 #include "test.h"
@@ -20,6 +38,7 @@ void test_driver_manager()
 {
 	cppdb::ref_ptr<cppdb::backend::connection> c1,c2,c3,c4;
 	cppdb::driver_manager &dm = cppdb::driver_manager::instance();
+	std::cout << "Testing drivers collection" << std::endl;
 	cppdb::connections_manager &cm = cppdb::connections_manager::instance();
 	dm.install_driver("dummy",new dummy::loadable_driver());
 	TEST(dummy::drivers==1);
@@ -43,6 +62,7 @@ void test_driver_manager()
 	dm.collect_unused();
 	TEST(dummy::drivers==0);
 	THROWS(c1=dm.connect("dummy:"),cppdb::cppdb_error);
+	std::cout << "Testing connection pooling" << std::endl;
 	dm.install_driver("dummy",new dummy::loadable_driver());
 	c1=cm.open("dummy:@pool_size=2;@pool_max_idle=2");
 	TEST(dummy::connections==1);
@@ -86,6 +106,51 @@ void test_driver_manager()
 	TEST(dummy::drivers==0);
 }
 
+void test_stmt_cache()
+{
+	cppdb::ref_ptr<cppdb::backend::connection> c;
+	cppdb::ref_ptr<cppdb::backend::statement> s1,s2,s3;
+
+	cppdb::driver_manager &dm = cppdb::driver_manager::instance();
+	dm.install_driver("dummy",new dummy::loadable_driver());
+	c=dm.connect("dummy:@use_prepared=off");
+	s1=c->prepare("test1");
+	s2=c->prepare("test2");
+	TEST(dummy::statements==2);
+	s1.reset();
+	TEST(dummy::statements==1);
+	s2.reset();
+	TEST(dummy::statements==0);
+	c=dm.connect("dummy:@use_prepared=on;@stmt_cache_size=3");
+	s1=c->prepare("test1");
+	s1=c->prepare("test2");
+	s1=c->prepare("test3");
+	TEST(dummy::statements==3);
+	s1=c->prepare("test4");
+	TEST(dummy::statements==4);
+	s1=c->prepare("test5");
+	TEST(dummy::statements==4);
+	s1.reset();
+	s1=c->prepare("test3");
+	TEST(dummy::statements==3);
+	s1.reset();
+	TEST(dummy::statements==3);
+	c->clear_cache();
+	TEST(dummy::statements==0);
+	s1=c->prepare("test");
+	s1.reset();
+	s1=c->prepare("test");
+	TEST(dummy::statements==1);
+	s1=c->prepare("test1");
+	TEST(dummy::statements==2);
+	s2=c->prepare("test1");
+	TEST(dummy::statements==3);
+	s1.reset();
+	s2.reset();
+	TEST(dummy::statements==2);
+
+}
+
 int main()
 {
 	try {
@@ -93,7 +158,7 @@ int main()
 	}
 	CATCH_BLOCK()
 	try {
-		//test_pool();
+		test_stmt_cache();
 	}
 	CATCH_BLOCK()
 	SUMMARY();

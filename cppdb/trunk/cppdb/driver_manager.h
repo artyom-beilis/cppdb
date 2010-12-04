@@ -33,15 +33,45 @@ namespace cppdb {
 	}
 	class connection_info;	
 
+	///
+	/// \brief this class is used to handle all drivers, loading them, unloading them etc.
+	///
+	/// All its member functions are thread safe
+	///
 	class CPPDB_API driver_manager {
 	public:
+		///
+		/// Get the singleton instance of the class
+		///
 		static driver_manager &instance();
+		///
+		/// Install new driver \a drv named \a name to the manager.
+		///
 		void install_driver(std::string const &name,ref_ptr<backend::driver> drv);
+		///
+		/// Unload all drivers that have no more open connections.
+		///
 		void collect_unused();
+
+		///
+		/// Add a path were the driver should search for loadable modules
+		///
 		void add_search_path(std::string const &);
+		///
+		/// Clear previously added a paths 
+		///
 		void clear_search_paths();
+		///
+		/// Search the library under default directory (i.e. empty path prefix) or not, default is true
+		///
 		void use_default_search_path(bool v);
+		///
+		/// Create a new connection object using parsed connection string \a ci
+		///
 		backend::connection *connect(connection_info const &ci);
+		///
+		/// Create a new connection object using connection string \a connectoin_string
+		///
 		backend::connection *connect(std::string const &connectoin_string);
 
 	private:
