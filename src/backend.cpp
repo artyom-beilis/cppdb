@@ -257,6 +257,10 @@ namespace cppdb {
 		{
 			return open(cs);
 		}
+		bool loadable_driver::in_use()
+		{
+			return use_count() > 1;
+		}
 		connection *loadable_driver::connect(connection_info const &cs)
 		{
 			connection *c = open(cs);

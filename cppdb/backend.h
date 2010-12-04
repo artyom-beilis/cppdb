@@ -406,6 +406,7 @@ namespace cppdb {
 			void operator=(loadable_driver const &);
 		public:
 			loadable_driver() {}
+			virtual bool in_use();
 			virtual ~loadable_driver() {}
 			virtual connection *connect(connection_info const &cs);
 		};

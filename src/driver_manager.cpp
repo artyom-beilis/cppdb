@@ -63,10 +63,6 @@ namespace cppdb {
 				throw cppdb_error("cppdb::driver failed to load driver " + name + " - no module found");
 			}
 		}
-		virtual bool in_use()
-		{
-			return use_count() == 1;
-		}
 		virtual backend::connection *open(connection_info const &ci)
 		{
 			return connect_(ci);
