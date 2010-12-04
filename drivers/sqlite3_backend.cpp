@@ -68,25 +68,22 @@ namespace cppdb {
 					return false;
 				if(sqlite3_column_type(st_,col)==SQLITE_NULL)
 					return false;
-				else if(sizeof(T) < sizeof(int)) {
-					int rv = sqlite3_column_int(st_,col);
-					if(	rv < int(std::numeric_limits<T>::min())
-						|| rv >int(std::numeric_limits<T>::max()))
-					{
+				sqlite3_int64 rv = sqlite3_column_int64(st_,col);
+				T tmp;
+				if(std::numeric_limits<T>::is_signed) {
+					tmp=static_cast<T>(rv);
+					if(static_cast<sqlite3_int64>(tmp)!=rv)
 						throw bad_value_cast();
-					}
-					v=static_cast<T>(rv);
-				}
-				if(sizeof(T) == sizeof(int) && std::numeric_limits<T>::is_signed) {
-					int rv = sqlite3_column_int(st_,col);
-					v=static_cast<T>(rv);
 				}
 				else {
-					sqlite3_int64 rv = sqlite3_column_int64(st_,col);
-					if(rv < 0 && std::numeric_limits<T>::is_signed==false)
+					if(rv < 0)
 						throw bad_value_cast();
-					v=static_cast<T>(rv);
+					unsigned long long urv = static_cast<unsigned long long>(rv);
+					tmp=static_cast<T>(urv);
+					if(static_cast<unsigned long long>(tmp)!=urv)
+						throw bad_value_cast();
 				}
+				v=tmp;
 				return true;
 			}
 	
