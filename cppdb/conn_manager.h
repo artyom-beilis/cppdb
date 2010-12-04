@@ -33,15 +33,34 @@ namespace cppdb {
 		class connection;
 	}
 
+	///
+	/// \brief This class is the major gateway to new connections
+	///
+	/// It handles connection pools and forwards request to the drivers.
+	///
+	/// This class member functions are thread safe
+	///
 	class CPPDB_API connections_manager {
 		connections_manager();
 		~connections_manager();
 		connections_manager(connections_manager const &);
 		void operator = (connections_manager const &);
 	public:
+		///
+		/// Get a singleton instance of the class
+		///
 		static connections_manager &instance();
+		///
+		/// Create a new connection using connection string \a cs
+		///
 		ref_ptr<backend::connection> open(std::string const &cs);
+		///
+		/// Create a new connection using parsed connection string \a ci
+		///
 		ref_ptr<backend::connection> open(connection_info const &ci);
+		///
+		/// Collect all connections that were not used for long time and close them.
+		///
 		void gc();
 	private:
 		struct data;

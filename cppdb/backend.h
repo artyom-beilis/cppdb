@@ -31,15 +31,24 @@ namespace cppdb {
 	class connection_info;
 	class pool;
 
+	///
+	/// \brief This namepace includes all classes required to implement a cppdb SQL backend.
+	///
 	namespace backend {	
 
+		///
+		/// This class represents query result
+		///
 		class CPPDB_API result : public ref_counted {
 		public:
-			// Begin of API
+			
+			///
+			/// The flag that defines the information about availability of the next row in result
+			///
 			typedef enum {
-				last_row_reached,
-				next_row_exists,
-				next_row_unknown
+				last_row_reached, ///< No more rows exits, next() would return false
+				next_row_exists,  ///< There are more rows, next() would return true
+				next_row_unknown  ///< It is unknown, next() may return either true or false
 			} next_row;
 
 			///
@@ -183,8 +192,6 @@ namespace cppdb {
 			///
 			virtual std::string column_to_name(int) = 0;
 
-			// End of API
-			
 			result();
 			virtual ~result();
 		private:
@@ -194,9 +201,13 @@ namespace cppdb {
 
 		class statements_cache;
 
+		///
+		/// \brief This class represents a statement that can be either executed or queried for result
+		///
 		class CPPDB_API statement : public ref_counted {
 		public:
 			// Begin of API
+
 			///
 			/// Reset the prepared statement to initial state as before the operation. It is
 			/// called by front-end each time before new query() or exec() are called.
@@ -357,20 +368,22 @@ namespace cppdb {
 			/// Execute a statement, MAY throw cppdb_error if the statement returns results.
 			///
 			virtual void exec() = 0;
-			// End of API
 
+			/// \cond INTERNAL 
 			// Caching support
 			static void dispose(statement *selfp);
 			
 			void cache(statements_cache *c);
 			statement();
 			virtual ~statement() ;
+			/// \endcond
 		protected:
 			struct data;
 			std::auto_ptr<data> d;
 			statements_cache *cache_;
 		};
-		
+	
+		/// \cond INTERNAL	
 		class CPPDB_API statements_cache {
 			statements_cache(statements_cache const &);
 			void operator=(statements_cache const &);
@@ -387,52 +400,101 @@ namespace cppdb {
 			std::auto_ptr<data> d;
 		};
 
+		/// \endcond
 
 		class connection;
 
+		///
+		/// \brief This class represents a driver that creates connections for 
+		/// given connection string, custom drivers can be are installed using this
+		/// class
+		///
 		class CPPDB_API driver : public ref_counted {
 			driver(driver const &);
 			void operator=(driver const &);
 		public:
 			driver() {}
 			virtual ~driver() {}
+			///
+			/// Return true if the driver in use (i.e. if there is any open connection exist (connection object)
+			/// so it can't be removed from the driver
+			///
 			virtual bool in_use() = 0;
+			///
+			/// Create a connection object - should be implemented by driver
+			///
 			virtual connection *open(connection_info const &cs) = 0;
+			///
+			/// Create a connection object, generally calls open() but may add some information (as registering objects)
+			/// and unregistering them
+			///
 			virtual connection *connect(connection_info const &cs);
 		};
-		
+	
+		///
+		/// \brief This class represents a driver that can be unloaded from the driver_manager.
+		///	
 		class CPPDB_API loadable_driver : public driver {
 			loadable_driver(loadable_driver const &);
 			void operator=(loadable_driver const &);
 		public:
 			loadable_driver() {}
+			///
+			/// Returns true if any of generated connections still exits
+			///
 			virtual bool in_use();
 			virtual ~loadable_driver() {}
+
+			///
+			/// Creates a new connection object and keeps track of them for handing (in_use) correctly
+			///
 			virtual connection *connect(connection_info const &cs);
 		};
 
 		extern "C" {
+			///
+			/// This function type is the function that is generally resolved from the shared objects when loaded
+			///
 			typedef cppdb::backend::connection *cppdb_backend_connect_function(connection_info const &ci);
 		}
 
 
+		///
+		/// Create a static driver using connection function (usable for statically linking drivers).
+		///
 		class CPPDB_API static_driver : public driver {
 		public:
 			typedef cppdb_backend_connect_function *connect_function_type;
 
+			///
+			/// Create a new driver that creates connection using function \a c
+			///
 			static_driver(connect_function_type c);
 			~static_driver();
+			///
+			/// Always returns true as this driver cannot be unloaded
+			///
 			bool in_use();
+			///
+			/// Create new connection - basically calls the function to create the object
+			///
 			backend::connection *open(connection_info const &ci);
 		private:
 			connect_function_type connect_;
 		};
 
 
+		///
+		/// \brief this class represents connection to database
+		///
 		class CPPDB_API connection : public ref_counted {
 		public:
+			///
+			/// Create a new object. Connection information \a info is required
+			///
 			connection(connection_info const &info);
 			virtual ~connection();
+			/// \cond INTERNAL
 			void set_pool(ref_ptr<pool> p);
 			void set_driver(ref_ptr<loadable_driver> drv);
 			static void dispose(connection *c);
@@ -440,6 +502,7 @@ namespace cppdb {
 			ref_ptr<statement> get_prepared_statement(std::string const &q);
 			ref_ptr<statement> get_prepared_uncached_statement(std::string const &q);
 			ref_ptr<statement> get_statement(std::string const &q);
+			/// \endcond 
 
 			// API 
 
@@ -489,7 +552,9 @@ namespace cppdb {
 			///
 			virtual std::string engine() = 0;
 
-			// API
+			///
+			/// Clear statements cache
+			///
 			void clear_cache();
 			
 		private:
