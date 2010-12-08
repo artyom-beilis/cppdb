@@ -38,6 +38,7 @@ include(CheckCXXSourceCompiles)
 
 if(NOT WIN32)
 	find_library(DL_LIB dl)
+	find_library(PTHREAD_LIB pthread NAMES thr kse)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -219,6 +220,7 @@ set_target_properties(cppdb PROPERTIES COMPILE_DEFINITIONS CPPDB_EXPORTS)
 
 if(NOT WIN32)
 	target_link_libraries(cppdb ${DL_LIB})
+	target_link_libraries(cppdb ${PTHREAD_LIB})
 endif()
 
 # Link and backends configuration
