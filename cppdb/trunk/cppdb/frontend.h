@@ -82,17 +82,27 @@ namespace cppdb {
 		return tags::into_tag<T>(value,tag);
 	}
 
+	///
+	/// Create a pair of a string value and tag for storing it to DB
+	///
 
 	inline tags::use_tag<std::string const &> use(std::string const &v,null_tag_type tag)
 	{
 		return tags::use_tag<std::string const &>(v,tag);
 	}
 
+	///
+	/// Create a pair of a string value and tag for storing it to DB
+	///
+
 	inline tags::use_tag<char const *> use(char const *v,null_tag_type tag)
 	{
 		return tags::use_tag<char const *>(v,tag);
 	}
 	
+	///
+	/// Create a pair of value and tag for storing it to DB
+	///
 	template<typename T>
 	tags::use_tag<T> use(T value,null_tag_type tag)
 	{
@@ -102,23 +112,80 @@ namespace cppdb {
 
 	class CPPDB_API result {
 	public:
+		///
+		/// Create an empty result, it is not useful except for having default constructor
+		///
 		result();
+		///
+		/// Destroys the result, note, if the result of statement is not destroyed, it would 
+		/// not be returned to statements cache.
+		///
 		~result();
+		///
+		/// Copy result, note it only keeps the reference to actual object so copy is just 
+		/// copy of the reference
+		///
 		result(result const &);
+		///
+		/// Assign result, note it only keeps the reference to actual object so assignment is just 
+		/// copy of the reference
+		///
 		result const &operator=(result const &);
 
+		///
+		/// Return the number of columns in the result
+		///
 		int cols();
+		///
+		/// Move forward to next row, returns false if no more rows available.
+		///
+		/// Notes:
+		///
+		/// - You should call next() at least once before you use fetch() functions
+		/// - You must not call fetch() functions if next() returned false, it would cause empty_row_access exception.
+		///
 		bool next();
 		
+		///
+		/// Convert column name \a n to its index, throws invalid_column if the name is not valid.
+		///
 		int index(std::string const &n);
+		///
+		/// Convert column name \a n to its index, returns -1 if the name is not valid.
+		///
 		int find_column(std::string const &name);
+
+		///
+		/// Convert column index to column name, throws invalid_column if col is not in range 0<= col < cols()
+		///
 		std::string name(int col);
 
+		///
+		/// Return true if the column number \a col (starting from 0) has NULL value
+		///
 		bool is_null(int col);
+		///
+		/// Return true if the column named \a n has NULL value
+		///
 		bool is_null(std::string const &n);
 
+		///
+		/// Clears the result, no further use of the result should be done until it is assigned again with a new statement result.
+		///
+		/// It is useful when you want to release all data and return the statement to cache
+		///
 		void clear();
+		///
+		/// Reset current column index
+		///
 		void rewind_column();
+		///
+		/// Check if the current row is empty, it is in 3 cases:
+		///
+		/// -# Empty result
+		/// -# next() wasn't called first time
+		/// -# next() returned false;
+		///
 		bool empty();
 
 		bool fetch(int col,short &v);

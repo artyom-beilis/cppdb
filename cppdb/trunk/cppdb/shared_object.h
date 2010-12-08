@@ -24,6 +24,9 @@
 
 
 namespace cppdb {
+	///
+	/// \brief This class allows to load and unload shared objects in simple and exception safe way.
+	///
 	class CPPDB_API shared_object : public ref_counted {
 		shared_object() : handle_(0) {}
 		shared_object(std::string name,void *h);
@@ -31,10 +34,23 @@ namespace cppdb {
 		void operator=(shared_object const &);
 	public:
 		~shared_object();
+		///
+		/// Load shared object, returns empty pointer if the object does not exits or not loadable
+		///
 		static ref_ptr<shared_object> open(std::string const &name);
+		///
+		/// Resolve symbol \a name and return pointer on it, throws cppdb_error if the symbol can't be resolved 
+		///
 		void *safe_sym(std::string const &name);
+
+		///
+		/// Resolve symbol \a name and return pointer on it, returns NULL if the symbol can't be resolved 
+		///
 		void *sym(std::string const &name);
 
+		///
+		/// Resolve symbol \a name and assign it to \a v, returns false if the symbol can't be resolved 
+		///
 		template<typename T>
 		bool resolve(std::string const &s,T *&v)
 		{
@@ -45,6 +61,9 @@ namespace cppdb {
 			v=(T*)(p);
 			return true;
 		}
+		///
+		/// Resolve symbol \a name and assign it to v, throws cppdb_error if the symbol can't be resolved 
+		///
 		template<typename T>
 		void safe_resolve(std::string const &s,T *&v)
 		{

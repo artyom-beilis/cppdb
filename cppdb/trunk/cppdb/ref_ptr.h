@@ -22,6 +22,10 @@
 #include <cppdb/atomic_counter.h>
 
 namespace cppdb {
+	///
+	/// \brief This is a smart intrusive reference counting pointer that throws a error on empty
+	/// access.
+	///
 	template<typename T>
 	class ref_ptr {
 	public:
@@ -81,6 +85,9 @@ namespace cppdb {
 		T *p;
 	};
 
+	///
+	/// \brief This is a class that implements reference counting and designed to be used with ref_ptr
+	///
 	class ref_counted {
 	public:
 		ref_counted() : count_(0) 
