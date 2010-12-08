@@ -33,21 +33,40 @@ namespace cppdb {
 		class connection;
 	}
 	
+	///
+	/// \brief Connections pool, allows to handle multiple connections for specific connection string.
+	///
+	/// Note connections_manager provide more generic interface and hides pools inside it. So you 
+	/// generally should not use this class directly.
+	///
+	/// Unlike connections_manager, it uses pool by default unless its size defined as 0.
+	///
+	/// All this class member functions are thread safe to use from several threads for the same object
+	///
 	class CPPDB_API pool : public ref_counted {
 		pool();
 		pool(pool const &);
 		void operator=(pool const &);
 		pool(connection_info const &ci);
 	public:
+		/// Create new pool for \a connection_string
 		static ref_ptr<pool> create(std::string const &connection_string);
+		/// Create new pool for a parsed connection string \a ci
 		static ref_ptr<pool> create(connection_info const &ci);
 
 		~pool();
 
+		///
+		/// Get a open a connection, it may be fetched either from pool or new one may be created
+		///
 		ref_ptr<backend::connection> open();
+		///
+		/// Collect connections that were not used for a long time (close them)
+		///
 		void gc();
+		/// \cond INTERNAL
 		void put(backend::connection *c_in);
-
+		/// \endcond
 	private:
 		ref_ptr<backend::connection> get();
 
