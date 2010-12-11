@@ -22,6 +22,7 @@
 #include <cppdb/backend.h>
 #include <cppdb/errors.h>
 #include <cppdb/utils.h>
+#include <cppdb/numeric_util.h>
 #include <sstream>
 #include <vector>
 #include <limits>
@@ -109,15 +110,7 @@ namespace unprep {
 			char const *s=at(col,len);
 			if(!s)
 				return false;
-			fmt_.str(std::string(s,len));
-			fmt_ >> v;
-			bool fail=false;
-			if(!fmt_ || !fmt_.eof())
-				fail=true;
-			fmt_.str(std::string());
-			fmt_.clear();
-			if(fail)
-				throw bad_value_cast();
+			v = parse_number<T>(std::string(s,len),fmt_);
 			return true;
 		}
 		virtual bool fetch(int col,short &v) 
@@ -554,16 +547,7 @@ namespace prep {
 			if(d.is_null)
 				return false;
 
-			fmt_.str(std::string(d.ptr,d.length));
-			fmt_ >> v;
-			bool fail=false;
-			if(!fmt_ || !fmt_.eof()) {
-				fail=true;
-			}
-			fmt_.str(std::string());
-			fmt_.clear();
-			if(fail)
-				throw bad_value_cast();
+			v=parse_number<T>(std::string(d.ptr,d.length),fmt_);
 			return true;
 		}
 		virtual bool fetch(int col,short &v) 
