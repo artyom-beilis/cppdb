@@ -27,10 +27,42 @@
 
 namespace cppdb {
 
+	///
+	/// \brief parse a string as time value.
+	/// 
+	/// Used by backend implementations;
+	///
 	CPPDB_API std::tm parse_time(char const *value);
+	///
+	/// \brief format a string as time value.
+	/// 
+	/// Used by backend implementations;
+	///
 	CPPDB_API std::string format_time(std::tm const &v);
+	///
+	/// \brief parse a string as time value.
+	/// 
+	/// Used by backend implementations;
+	///
 	CPPDB_API std::tm parse_time(std::string const &v);
 
+	///
+	/// \brief Parse a connection string \a cs into driver name \a driver_name and list of properties \a props
+	///
+	/// The connection string format is following:
+	///
+	/// \verbatim  driver:[key=value;]*  \endverbatim 
+	///
+	/// Where value can be either a sequence of characters (white space is trimmed) or it may be a general
+	/// sequence encloded in a single quitation marks were double quote is used for insering a single quote value.
+	///
+	/// Key values starting with \@ are reserved to be used as special cppdb  keys
+	/// For example:
+	///
+	/// \verbatim   mysql:username= root;password = 'asdf''5764dg';database=test;@use_prepared=off' \endverbatim 
+	///
+	/// Where driver is "mysql", username is "root", password is "asdf'5764dg", database is "test" and
+	/// special value "@use_prepared" is off - internal cppdb option.
 	CPPDB_API void parse_connection_string(	std::string const &cs,
 						std::string &driver_name,
 						std::map<std::string,std::string> &props);
