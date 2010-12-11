@@ -37,7 +37,11 @@ namespace cppdb {
 	namespace backend {	
 
 		///
-		/// This class represents query result
+		/// \brief This class represents query result.
+		///
+		/// This object is created by statement::query call, backend developer may assume that this object
+		/// will stay alive as long as statement that created it exits, i.e. statement would be destroyed after
+		/// result.
 		///
 		class CPPDB_API result : public ref_counted {
 		public:
@@ -460,7 +464,7 @@ namespace cppdb {
 
 
 		///
-		/// Create a static driver using connection function (usable for statically linking drivers).
+		/// \brief Create a static driver using connection function (usable for statically linking drivers).
 		///
 		class CPPDB_API static_driver : public driver {
 		public:
