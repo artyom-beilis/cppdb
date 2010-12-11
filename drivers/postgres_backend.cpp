@@ -22,6 +22,7 @@
 #include <cppdb/backend.h>
 #include <cppdb/errors.h>
 #include <cppdb/utils.h>
+#include <cppdb/numeric_util.h>
 #include <sstream>
 #include <vector>
 #include <limits>
@@ -77,6 +78,7 @@ namespace cppdb {
 				current_(-1),
 				blob_(b)
 			{
+				ss_.imbue(std::locale::classic());
 			}
 			virtual ~result() 
 			{
@@ -104,12 +106,8 @@ namespace cppdb {
 			{
 				if(do_isnull(col))
 					return false;
-				std::istringstream ss;
-				ss.imbue(std::locale::classic());
-				ss.str(PQgetvalue(res_,current_,col));
-				ss >> v;
-				if(!ss || !ss.eof())
-					throw bad_value_cast();
+				std::string tmp(PQgetvalue(res_,current_,col),PQgetlength(res_,current_,col));
+				v=parse_number<T>(tmp,ss_);
 				return true;
 			}
 			virtual bool fetch(int col,short &v)
@@ -260,6 +258,7 @@ namespace cppdb {
 			int cols_;
 			int current_;
 			blob_type blob_;
+			std::istringstream ss_;
 		};
 
 		class statement : public backend::statement {
@@ -348,27 +347,27 @@ namespace cppdb {
 					res_ = 0;
 				}
 				std::vector<std::string> vals(params_);
+				std::vector<size_t> lengths(params_,0);
+				std::vector<char const *> pvals(params_,0);
 				std::vector<param_type> flags(params_,null_param);
 				params_values_.swap(vals);
+				params_pvalues_.swap(pvals);
+				params_plengths_.swap(lengths);
 				params_set_.swap(flags);
 			}
 			virtual void bind(int col,std::string const &v)
 			{
-				check(col);
-				// FIXME
-				params_values_[col-1]=v;
-				params_set_[col-1]=text_param;
+				bind(col,v.c_str(),v.c_str()+v.size());
 			}
 			virtual void bind(int col,char const *s)
 			{
-				check(col);
-				params_values_[col-1]=s;
-				params_set_[col-1]=text_param;
+				bind(col,s,s+strlen(s));
 			}
 			virtual void bind(int col,char const *b,char const *e)
 			{
 				check(col);
-				params_values_[col-1].assign(b,e-b);
+				params_pvalues_[col-1] = b;
+				params_plengths_[col-1] = e-b;
 				params_set_[col-1]=text_param;
 			}
 			virtual void bind(int col,std::tm const &v) 
@@ -492,8 +491,14 @@ namespace cppdb {
 					formats.resize(params_,0);
 					for(unsigned i=0;i<params_;i++) {
 						if(params_set_[i]!=null_param) {
-							values[i]=params_values_[i].c_str();
-							lengths[i]=params_values_[i].size();
+							if(params_pvalues_[i]!=0) {
+								values[i]=params_pvalues_[i];
+								lengths[i]=params_plengths_[i];
+							}
+							else {
+								values[i]=params_values_[i].c_str();
+								lengths[i]=params_values_[i].size();
+							}
 							if(params_set_[i]==binary_param) {
 								formats[i]=1;
 							}
@@ -617,10 +622,13 @@ namespace cppdb {
 			}
 			PGresult *res_;
 			PGconn *conn_;
+
 			std::string query_;
 			std::string orig_query_;
 			unsigned params_;
 			std::vector<std::string> params_values_;
+			std::vector<char const *> params_pvalues_;
+			std::vector<size_t> params_plengths_;
 			std::vector<param_type> params_set_;
 			std::string prepared_id_;
 			blob_type blob_;

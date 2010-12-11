@@ -19,6 +19,7 @@
 #define CPPDB_DRIVER_SOURCE
 #include <cppdb/backend.h>
 #include <cppdb/utils.h>
+#include <cppdb/numeric_util.h>
 #include <list>
 #include <vector>
 #include <iostream>
@@ -429,13 +430,7 @@ public:
 	{
 		if(at(col).first)
 			return false;
-		std::istringstream ss;
-		ss.imbue(std::locale::classic());
-		ss.str(at(col).second);
-		ss >> v;
-		if(!ss || !ss.eof()) {
-			throw bad_value_cast();
-		}
+		v=parse_number<T>(at(col).second,ss_);
 		return true;
 	}
 	virtual bool fetch(int col,short &v)
@@ -531,6 +526,7 @@ public:
 		rows_.swap(rows);
 		started_ = false;
 		current_ = rows_.end();
+		ss_.imbue(std::locale::classic());
 	}
 	cell_type &at(int col)
 	{
@@ -544,6 +540,7 @@ private:
 	std::vector<std::string> names_;
 	rows_type::iterator current_;
 	rows_type rows_;
+	std::istringstream ss_;
 };
 
 class statements_cache;

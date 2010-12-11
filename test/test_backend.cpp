@@ -543,6 +543,33 @@ void test7(cppdb::ref_ptr<cppdb::backend::connection> sql)
 		TEST(res->fetch(0,l) && l==-1);
 		TEST(res->fetch(0,ll) && ll==-1);
 	}
+	std::cout <<"Testing floating -> integer conversions" << std::endl;
+	{
+		stmt=sql->prepare("delete from test");
+		stmt->exec();
+		stmt=sql->prepare("insert into test(r) values(33000.11)");
+		stmt->exec();
+		stmt=sql->prepare("select r from test");
+		res = stmt->query();
+		res->next();
+		int i=0;
+		short s=0;
+		TEST(res->fetch(0,i) && (i==33000 || i==33001));
+		THROWS(res->fetch(0,s),cppdb::bad_value_cast);
+		res.reset();
+		stmt=sql->prepare("delete from test");
+		stmt->exec();
+		stmt=sql->prepare("insert into test(r) values(-1e12)");
+		stmt->exec();
+		long long ll = 0;
+		unsigned long long ull;
+		stmt=sql->prepare("select r from test");
+		res = stmt->query();
+		res->next();
+		THROWS(res->fetch(0,i),cppdb::bad_value_cast);
+		TEST(res->fetch(0,ll) && ll==-1000000000000LL);
+		THROWS(res->fetch(0,ull),cppdb::bad_value_cast);
+	}
 	stmt=sql->prepare("delete from test");
 	stmt->exec();
 }
