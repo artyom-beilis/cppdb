@@ -263,11 +263,13 @@ add_executable(test_perf test/test_perf.cpp)
 add_executable(test_basic test/test_basic.cpp)
 add_executable(test_backend test/test_backend.cpp)
 add_executable(test_caching test/test_caching.cpp)
+add_executable(example examples/example1.cpp)
 
 target_link_libraries(test_perf cppdb)
 target_link_libraries(test_basic cppdb)
 target_link_libraries(test_backend cppdb)
 target_link_libraries(test_caching cppdb)
+target_link_libraries(example cppdb)
 
 install(TARGETS ${INST_LIBS} 
 	RUNTIME DESTINATION bin

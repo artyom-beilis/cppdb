@@ -67,19 +67,47 @@ namespace cppdb {
 						std::string &driver_name,
 						std::map<std::string,std::string> &props);
 
+	///
+	/// \brief Class that represents parsed connection string
+	///
 	class CPPDB_API connection_info {
 	public:
+		///
+		/// The original connection string
+		///
 		std::string connection_string;
+		///
+		/// The driver name
+		///
 		std::string driver;
+		///
+		/// Type that represent key, values set
+		///
 		typedef std::map<std::string,std::string> properties_type;
+		///
+		/// The std::map of key value properties.
+		///
 		properties_type properties;
 		
+		///
+		/// Get property \a prop, returning \a default_value if not defined.
+		///
 		std::string get(std::string const &prop,std::string const &default_value=std::string()) const;
+		///
+		/// Get numeric value for property \a prop, returning \a default_value if not defined. 
+		/// If the value is not a number, throws cppdb_error.
+		///
 		int get(std::string const &prop,int default_value) const;
-		
+	
+		///
+		/// Default constructor - empty info
+		///	
 		connection_info()
 		{
 		}
+		///
+		/// Create connection_info from the connection string parsing it.
+		///
 		explicit connection_info(std::string const &cs) :
 			connection_string(cs)
 		{

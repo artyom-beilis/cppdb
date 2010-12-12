@@ -1,0 +1,54 @@
+/*! \page connstr Connection Strings
+
+\section fmt Connection String Format
+
+CppDB connection string consists of the following parts:
+
+-# Driver Name separated from rest of the string with ":"
+-# Set of key = value pairs separated with ";" symbol. Where value can be put in single quotation marks ' and double quotation mark represents a single one (like in SQL syntax).
+
+For example
+\verbatim
+mysql:database=test;username=user;password='d''eep secret'
+\endverbatim
+
+Represent a driver "mysql", username "user", password "d'eep secret".
+
+There are special keys that used as internal cppdb options rather then connection options. Such 
+keys are always start with \@ symbol. For example "@use_prepared=off".
+
+\section speckeys Special Options
+
+These are CppDB special key values that are used as meta data for the connection:
+
+- \@stmt_cache_size - integer - the maximal number of cached statements. Default is 64.
+\n
+Each time new statement is created it is stored back in
+cache for future reuse and thus next time when the statement
+is created it would be fetched from cache rather then
+being prepared again. It gives significant performance
+boost for query and statements execution. The cache is handled using LRU queue.
+- \@use_prepared - "on" or "off" by default create prepared statements or ordinary statements. Default is "on".
+- \@pool_size - integer - the size of connection pool. Default is 0 - no connection pooling.
+\n
+This provides connection pool for efficient
+connection reuse that significantly improves the performance.
+- \@pool_max_idle - integer - the number if seconds to keep idle connection in pool. Default 600 - 10 minutes.
+\n
+This is useful for keeping maximal amount of time for holding an idle connection in pool.
+- \@modules_path - string - the path to search cppdb modules (drivers) in.
+\n
+Several paths can be given, under POSIX platform they should be separated 
+using ':' symbol and under Windows (not Cygwin) it should be ';' symbol. For example:
+\n
+\verbatim
+mydriver:@modules_path=/opt/cppd/lib:/usr/local/lib;database=foo
+mydriver:@modules_path='c:/cppdb/lib;c:/mydrv';database=foo
+\endverbatim
+- \@module - string - the path to loadable cppdb module (shared object or dll).
+\n
+The explicit path to cppdb driver, for example "mydriver:@module=/opt/lib/libmy.so"
+
+
+*/
+

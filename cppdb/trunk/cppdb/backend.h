@@ -381,7 +381,7 @@ namespace cppdb {
 			statement();
 			virtual ~statement() ;
 			/// \endcond
-		protected:
+		private:
 			struct data;
 			std::auto_ptr<data> d;
 			statements_cache *cache_;
@@ -468,6 +468,9 @@ namespace cppdb {
 		///
 		class CPPDB_API static_driver : public driver {
 		public:
+			///
+			/// Typedef of the function pointer that is used for creation of connection objects.
+			///
 			typedef cppdb_backend_connect_function *connect_function_type;
 
 			///
