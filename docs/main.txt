@@ -24,8 +24,10 @@ The library is released under LGPLv3 license.
 This manual is divided in the following sections:
 - \subpage intro
 - \subpage connstr
+- \subpage stat
 - \subpage backendref 
 - \subpage backenddev 
+- \subpage build
 
 
 */

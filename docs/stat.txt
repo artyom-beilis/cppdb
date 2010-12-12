@@ -1,0 +1,67 @@
+/*! \page stat Preparing Statements
+
+\section prep Creating a Statement
+
+The cppdb::statement objects are usually created by calling cppdb::session::prepare() function or by using
+cppdb::session::operator<<(). Prepare statements are usually cached for future reuse. Non-prepared statements
+can be also created by calling cppdb::session::create_statement() and prepared statements can be created without
+caching by calling cppdb::session::create_prepared_uncached_statement(). It is useful when
+such statements are rarely executed or executed only once.
+
+For example:
+
+\code
+cppdb::statement st=sql.prepare("DELETE FROM users");
+\endcode
+
+\section bind Binding Parameters
+
+The statement may contain placeholders marked with "?" for parameters that should be binded. The
+values for placeholders can be binded by their order using cppdb::statement::operator<<(), or cppdb::statement::bind()
+functions. The placeholder order can be also specified explicitly starting from 1.
+
+For example:
+\code
+cppdb::statement st=sql.prepare("DELETE FROM users WHERE age<? AND role<>?");
+st.bind(1,13);
+st.bind(2,"moderator");
+\endcode
+
+Of course syntactic sugar may be used as well:
+\code
+cppdb::statement st=sql << "DELETE FROM users WHERE age<? AND role<>?" << 13 << "moderator";
+\endcode
+
+
+\section exec Executing Statements
+
+Statements are executed by calling cppdb::statement::exec(). Also manipulator cppdb::exec provided
+for execution of a statement that allows writing complex queries in one line.
+\code
+sql << "DELETE FROM users WHERE age<? AND role<>?" << 13 << "moderator" <<cppdb::exec;
+\endcode
+
+\section meta Fetching Meta-data
+
+Meta-data about recently executed statement can fetched using following functions:
+
+- cppdb::statement::affected() - the number of rows affected by the statement
+- cppdb::statement::last_insert_id() - the last generated row id.
+- cppdb::statement::sequence_last() - the last generated sequence number (using named sequences).
+
+\section reset Reusing Statement
+
+The same prepared statement can be reused multiple times. For this purpose after each call of ppdb::statement::exec() or ppdb::statement::query(), ppdb::statement::reset() should be called that would clear all bindings and allow executing it once again:
+
+\code
+cppdb::statement st = sql << "INSERT INTO students(id,name) values(?,?)";
+for(i=0;i<students.size();i++) {
+  st.bind(students[i].id);
+  st.bind(students[i].name);
+  st.exec();
+  st.reset();
+}
+\endcode
+
+*/
+

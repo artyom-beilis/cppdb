@@ -1,6 +1,7 @@
-/*! \page connstr Connection Strings
+/*! \page connstr Connecting to Database
 
-\section fmt Connection String Format
+\section cs Connection Strings
+\subsection fmt Connection String Format
 
 CppDB connection string consists of the following parts:
 
@@ -17,7 +18,7 @@ Represent a driver "mysql", username "user", password "d'eep secret".
 There are special keys that used as internal cppdb options rather then connection options. Such 
 keys are always start with \@ symbol. For example "@use_prepared=off".
 
-\section speckeys Special Options
+\subsection speckeys Special Options
 
 These are CppDB special key values that are used as meta data for the connection:
 
@@ -49,6 +50,40 @@ mydriver:@modules_path='c:/cppdb/lib;c:/mydrv';database=foo
 \n
 The explicit path to cppdb driver, for example "mydriver:@module=/opt/lib/libmy.so"
 
+\section Establishing Connection
+
+Connecting to the database can be done using either by creating a session object with connection string parameter cppdb::session::session(std::string const &) or
+by calling cppdb::session::open() function.
+
+When the connection established first time for specific driver, it loads its shared object or dll and makes it available for you.
+If you want to unload the drivers that are not used any more you should call cppdb::driver_manager::collect_unused(). And if all
+drivers that do not have opened connections will be closed.
+
+Note, if you use connection pooling you would also want to call cppdb::connections_manager::gc() to remove all sessions that were idle
+for long period of time.
+
+Both classes cppdb::connections_manager and cppdb::driver_manager are singleton classes that used for connection management and pooling
+and in fact, cppdb::session::open() just calls cppdb::connections_manager::open() to get the underlying cppdb::backend::connection object.
+
+
+\section static Linking Drivers Statically
+
+In some cases you want to have drivers statically linked into your application. The simplest way is
+to \ref build "build" it with internal option for specific backend you need, however you may also
+to use it directly.
+
+Every backend as a single entry point called "cppdb_XXX_get_connection" where XXX is the backend name, so together
+with cppdb::backend::static_driver you can install it as shown in the example below:
+
+\code
+extern "C" {
+	cppdb::backend::connection *cppdb_sqlite3_get_connection(cppdb::connection_info const &);
+}
+void add_driver()
+{
+  cppdb::driver_manager::instance().install_driver("sqlite3",new cppdb::backend::static_driver(cppdb_sqlite3_get_connection));
+}
+\endcode
 
 */
 
