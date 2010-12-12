@@ -1,0 +1,158 @@
+
+/*! \page backendref Backends Reference
+
+CppDB provides following SQL backends support
+
+- \subpage mysql
+- \subpage postgresql
+- \subpage sqlite3
+- \subpage odbc
+
+*/
+
+//---------------------------
+
+/*! \page mysql MySQL Backend - "mysql"
+
+MySQL backend allows to connect to MySQL database. It uses native MySQL C client API.
+
+
+\section conn Connection String
+
+The driver name is "mysql", cppdb::session::engine() returns "mysql"
+
+Connection Properties are:
+
+- host - the remote database host to connect. Default is local host.
+- user - the user name to login
+- password - the password to login
+- database - the name of the database to use - default unspecified
+- port - the port to connect - default unspecified
+- unix_socket - the socket to connect - default unspecified
+
+
+\section impl Implementation Details
+
+Prepared statements are implemented using mysql_stmt_* family API, while unprepared statements
+use mysql_real_query API and explicit escaping using mysql_real_escape_string instead of parameter binding.
+
+Because MySQL caches query results, it sometimes more efficient to use unprepared statements
+rather then using prepared one that their results are not cached
+
+Last insert row id is fetched using mysql_insert_id() and mysql_stmt_insert_id() API, the
+name of the sequence is ignored.
+
+
+*/
+
+//---------------------------
+
+/*! \page postgresql PostgreSQL Backend - "postgresql"
+
+PostgreSQL backend allows to connect to PostgreSQL database. It uses libpq C client API.
+
+
+\section conn Connection String
+
+The driver name is "postgresql", cppdb::session::engine() returns "posgresql"
+
+PostgreSQL connection properties are passed as it to libpq. So for full list you should refer to
+the <a href="http://www.postgresql.org/docs/8.3/static/libpq-connect.html">libpq manual</a>
+
+The most used properties are:
+
+- host - the remote database host to connect. Default is local host.
+- user - the user name to login
+- password - the password to login
+- dbname - the name of the database to use - default unspecified
+- port - the port to connect - default unspecified
+
+\subsection connspec Special Properties
+
+PostgreSQL backend has additional internal property that define how to treat
+blob objects: "@blob"
+
+The possible values are:
+
+- "lo" use large object API to store Blobs. This is the default.it adds a restriction to accessing large objects only withing transaction and handing their lifetime using <a href="http://www.postgresql.org/docs/8.3/static/lo.html">lo module</a>. This option has an advantage of small memory footprint when dealing with large objects as it does not require storing full object in memory.
+- "bytea" - treat Blobs as bytea columns. This is simpler method but it is applicable only for objects that can fit to memory.
+
+
+\section impl Implementation Details
+
+Prepared statements are implemented using PQexecPrepared API, while unprepared statements
+use PQexecParams API.
+
+When using PostgreSQL large objects "@blob=lo" - the default - you should access them only during transaction, otherwise
+the operations would fail. It is very good idea to use <a href="http://www.postgresql.org/docs/8.3/static/lo.html">lo module</a>
+that helps handing object lifetime as cppdb backend is not aware of statement type you use and it can't decide whether
+new object should be created in insert statement or same object should be updated. So "lo" module is your friend.
+
+You may also use bytea if want to have a semantics similar to other RDBMSs Blobs.
+
+Fetching last insert id should be done using non-empty sequence name, i.e. using cppdb::statement::sequence_last() and
+it is fetched using "SELECT currval(?)" statement.
+
+
+*/
+
+
+//---------------------------
+
+/*! \page sqlite3 SQlite3 Backend - "sqlite3"
+
+SQlite3 backend allows to connect to SQlite3 database. It uses native SQlite3 C client API.
+
+
+\section conn Connection String
+
+The driver name is "sqlite3", cppdb::session::engine() returns "sqlite3"
+
+Connection Properties are:
+
+- db - the path to sqlite3 database file, special name ":memory:" can be used as well.
+- mode - the mode to open connection with, one of "create", "readonly" and "readwrite", default is "create". The difference between 
+  "readwrite" and "create" that if the database does not exist the connection fails.
+
+
+\section impl Implementation Details
+
+Both prepared and not prepared statements are implemented using sqlite3_ API,
+while unprepared statements just not getting cached unlike prepared ones.
+
+Last insert row id is fetched using sqlite3_last_insert_rowid(), the
+name of the sequence is ignored.
+
+
+*/
+
+//---------------------------
+
+/*! \page odbc ODBC Backend - "odbc"
+
+ODBC backend allows to connect to ODBC database. It uses native ODBC C client API.
+
+
+\section conn Connection String
+
+The driver name is "odbc", cppdb::session::engine() returns "odbc"
+
+Connection Properties are:
+
+- db - the path to odbc database file, special name ":memory:" can be used as well.
+- mode - the mode to open connection with, one of "create", "readonly" and "readwrite", default is "create". The difference between 
+  "readwrite" and "create" that if the database does not exist the connection fails.
+
+
+\section impl Implementation Details
+
+Both prepared and not prepared statements are implemented using odbc_ API,
+while unprepared statements just not getting cached unlike prepared ones.
+
+Last insert row id is fetched using odbc_last_insert_rowid(), the
+name of the sequence is ignored.
+
+
+*/
+
+

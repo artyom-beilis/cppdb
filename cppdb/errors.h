@@ -26,6 +26,9 @@ namespace cppdb {
 	///
 	class cppdb_error : public std::runtime_error {
 	public:
+		///
+		/// Create a cppdb_error with error message \a v
+		///
 		cppdb_error(std::string const &v) : std::runtime_error(v) {}
 	};
 
@@ -97,6 +100,9 @@ namespace cppdb {
 	///
 	class not_supported_by_backend : public cppdb_error {
 	public:
+		///
+		/// Create a not_supported_by_backend with error message \a e
+		///
 		not_supported_by_backend(std::string const &e) :
 			cppdb_error(e)
 		{
