@@ -6,29 +6,39 @@ other connectivity libraries do.
 
 CppDB was designed with following goals in the mind:
 
-- Performance is the primary goal make fastest possible SQL connectivity as it can do.
+- Performance is the primary goal - make fastest possible SQL connectivity as possible
 - Transparent connection pooling support
 - Transparent prepared statements caching 
-- Dynamic DB modules loading and optional static linking.
-- Full and high priority support of following RDBMS: MySQL, PostgreSQL, Sqlite3
-- Support of as much as possible RDBMSs via cppdb-odbc bridge
+- Dynamic DB modules loading and optional static linking
+- Full and high priority support of FOSS RDBMS: MySQL, PostgreSQL, Sqlite3
+- Support as many  RDBMSs as possible via cppdb-odbc bridge
 - Simplicity in use
-- Support of "traditional" API and nice syntactic sugar.
+- Locale safety
+- Support of both explicit verbose API and brief and nice syntactic sugar
 
 This library was developed on the base of experience with SOCI, libdbi and
 other SQL Connectivity libraries.
 
 The library is released under LGPLv3 license.
 
+This manual is divided in the following parts:
 
-This manual is divided in the following sections:
+Basic use:
+
 - \subpage intro
 - \subpage connstr
 - \subpage stat
+- \subpage query
+- \subpage transaction
+- \subpage escaping
 - \subpage backendref 
-- \subpage backenddev 
 - \subpage build
+- \subpage support
 
+Advanced use:
+
+- \subpage advanced_drivers
+- \subpage backenddev 
 
 */
 
