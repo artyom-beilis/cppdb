@@ -156,7 +156,7 @@ option is used (default) it would pass strings as is to the backend assuming tha
 called "ANSI" API , otherwise, it would use so called "Wide" API and convert the strings to UTF-16 and use wide character
 functions.
 \n
-Note: you should almost always use narrow option as most ODBC drivers support UTF-8 happily, however when you
+\note you should almost always use narrow option as most ODBC drivers support UTF-8 happily, however when you
 work with MS SQL under windows you would probably want to use wide API for operation on strings.
 - \@sequence_last - the SQL statement that is used for retrieving the last created id. You need to specify this if you
 want to use cppdb::statement::sequence_last() or cppdb::statement::last_insert_id() and the engine is not one of mysql sqlite3, postgresql or mssql.

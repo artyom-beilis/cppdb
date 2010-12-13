@@ -59,21 +59,55 @@ When the connection established first time for specific driver, it loads its sha
 If you want to unload the drivers that are not used any more you should call cppdb::driver_manager::collect_unused(). And if all
 drivers that do not have opened connections will be closed.
 
-Note, if you use connection pooling you would also want to call cppdb::connections_manager::gc() to remove all sessions that were idle
+\note If you use connection pooling you would also want to call cppdb::connections_manager::gc() to remove all sessions that were idle
 for long period of time.
 
 Both classes cppdb::connections_manager and cppdb::driver_manager are singleton classes that used for connection management and pooling
 and in fact, cppdb::session::open() just calls cppdb::connections_manager::open() to get the underlying cppdb::backend::connection object.
 
+*/
 
-\section static Linking Drivers Statically
+
+//--------------------------
+/*! \page advanced_drivers Linking Existing Drivers Statically
+
+\section advanced_drivers_before_you_begin Before You Begin
 
 In some cases you want to have drivers statically linked into your application. The simplest way is
-to \ref build "build" it with internal option for specific backend you need, however you may also
-to use it directly.
+to \ref build "build" it with internal option for specific backend you need. This is the best
+and less error prone way.
+
+However you may also to use it directly without rebuilding cppdb library.
+
+\section advanced_drivers_linking Linking the Module
+
+CppDB comes with following libraries (the names below are for Linux, under other OS they may be slightly different):
+
+- libcppdb.so and libcppdb.a - shared and static version of cppdb without modules
+- libcppdb_XXX.so and libcppdb_XXX.a - shared and static version of modules, where XXX is the name of the module.
+
+By default, cppdb tries to load the module's shared object on the run time. However, if you want to link the
+module statically into the library you may do following.
+
+-# During linking use static library for the cppdb and for the module you need.
+-# Link with the appropriate native client library for the module. 
+
+For example:
+
+\verbatim
+g++ my_program.o /usr/lib/libcppdb.a /usr/lib/libcppdb_sqlite3.a -lpthread -ldl -lsqlite3
+\endverbatim
+
+Where libcppdb.a and libcppdb_sqlite3.a are the static version of the library and the module, "-lpthread -ldl" are
+dependencies of libcppdb and "-lsqlite3" is the dependency of sqlite3 module.
+
+\section advanced_drivers_installing Adding Backend to Driver
+
+Linking only with the backend is not enough, you need also install the driver to cppdb::driver_manager so it would
+know to use it directly rather then try to load it dynamically.
 
 Every backend as a single entry point called "cppdb_XXX_get_connection" where XXX is the backend name, so together
-with cppdb::backend::static_driver you can install it as shown in the example below:
+with cppdb::backend::static_driver you can install it to the \ref cppdb::driver_manager driver_manger as shown in the example below:
 
 \code
 extern "C" {
