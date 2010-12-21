@@ -10,10 +10,10 @@ CppDB connection string consists of the following parts:
 
 For example
 \verbatim
-mysql:database=test;username=user;password='d''eep secret'
+mysql:database=test;user=joe;password='d''eep secret'
 \endverbatim
 
-Represent a driver "mysql", username "user", password "d'eep secret".
+Represent a driver "mysql", user "joe" and password "d'eep secret".
 
 There are special keys that used as internal cppdb options rather then connection options. Such 
 keys are always start with \@ symbol. For example "@use_prepared=off".
