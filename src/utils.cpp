@@ -161,6 +161,11 @@ namespace cppdb {
 			return p->second;
 	}
 
+	bool connection_info::has(std::string const &prop) const
+	{
+		return properties.find(prop) != properties.end();
+	}
+
 	int connection_info::get(std::string const &prop,int default_value) const
 	{
 		properties_type::const_iterator p=properties.find(prop);

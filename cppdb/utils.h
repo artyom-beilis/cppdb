@@ -90,6 +90,10 @@ namespace cppdb {
 		properties_type properties;
 		
 		///
+		/// Cheks if property \a prop, has been given in connection string.
+		///
+		bool has(std::string const &prop) const;
+		///
 		/// Get property \a prop, returning \a default_value if not defined.
 		///
 		std::string get(std::string const &prop,std::string const &default_value=std::string()) const;
