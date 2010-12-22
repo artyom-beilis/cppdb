@@ -17,8 +17,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #define CPPDB_DRIVER_SOURCE
-#include <postgresql/libpq-fe.h>
-#include <postgresql/libpq/libpq-fs.h>
+#include <libpq-fe.h>
+#include <libpq/libpq-fs.h>
 #include <cppdb/backend.h>
 #include <cppdb/errors.h>
 #include <cppdb/utils.h>
