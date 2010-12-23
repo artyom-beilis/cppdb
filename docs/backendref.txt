@@ -30,6 +30,15 @@ Connection Properties are:
 - port - the port to connect - default unspecified
 - unix_socket - the socket to connect - default unspecified
 
+Additionaly you can customize the connection with MySQL option parameters.
+Current list of options is specified in http://dev.mysql.com/doc/refman/5.5/en/mysql-options.html .
+In CppDB, they are specified in lower case letters with \c mysql_ prefix removed.
+Boolean values should be given as either 0 or 1. Options which take no arguments (e.g. opt_compress)
+should be passed as a boolean with the value of 1. Example option string: 
+
+\verbatim
+mysql:user=test;password=test;opt_reconnect=1;opt_read_timeout=10;opt_compress=1
+\endverbatim
 
 \section impl Implementation Details
 
