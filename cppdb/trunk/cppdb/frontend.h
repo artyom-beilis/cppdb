@@ -17,7 +17,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #ifndef CPPDB_FRONTEND_H
-#define CPPDB_FRONEND_H
+#define CPPDB_FRONTEND_H
 #include <cppdb/defs.h>
 #include <cppdb/errors.h>
 #include <cppdb/ref_ptr.h>
