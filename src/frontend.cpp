@@ -429,6 +429,15 @@ namespace cppdb {
 	session::session()
 	{
 	}
+	session::session(session const &other) :
+		conn_(other.conn_)
+	{
+	}
+	session const &session::operator=(session const &other)
+	{
+		conn_ = other.conn_;
+		return *this;
+	}
 	session::session(ref_ptr<backend::connection> conn) : 
 		conn_(conn) 
 	{
