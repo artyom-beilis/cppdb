@@ -308,8 +308,9 @@ namespace cppdb {
 
 					PGresult *r=PQprepare(conn_,prepared_id_.c_str(),query_.c_str(),0,0);
 					try {
-						if(!r)
-							throw std::bad_alloc();
+						if(!r) {
+							throw pqerror("Failed to create prepared statement object!");
+						}
 						if(PQresultStatus(r)!=PGRES_COMMAND_OK)
 							throw pqerror(r,"statement preparation failed");
 					}
