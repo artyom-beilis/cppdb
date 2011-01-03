@@ -42,8 +42,22 @@ namespace cppdb {
 
 	ref_ptr<backend::connection> connections_manager::open(std::string const &cs)
 	{
-		connection_info ci(cs);
-		return open(ci);
+		ref_ptr<pool> p;
+		/// seems we may be using pool
+		if(cs.find("@pool_size")!=std::string::npos) {
+			mutex::guard l(lock_);
+			connections_type::iterator pool_ptr = connections_.find(cs);
+			if(pool_ptr!=connections_.end())
+				p = pool_ptr->second;
+		}
+
+		if(p) {
+			return p->open();
+		}
+		else {
+			connection_info ci(cs);
+			return open(ci);
+		}
 	}
 	ref_ptr<backend::connection> connections_manager::open(connection_info const &ci)
 	{

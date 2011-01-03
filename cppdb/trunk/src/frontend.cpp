@@ -445,11 +445,19 @@ namespace cppdb {
 	session::~session()
 	{
 	}
+	session::session(connection_info const &ci)
+	{
+		open(ci);
+	}
 	session::session(std::string const &cs)
 	{
 		open(cs);
 	}
 	
+	void session::open(connection_info const &ci)
+	{
+		conn_ = connections_manager::instance().open(ci);
+	}
 	void session::open(std::string const &cs)
 	{
 		conn_ = connections_manager::instance().open(cs);
