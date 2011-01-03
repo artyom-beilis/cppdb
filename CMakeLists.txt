@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(cppdb)
 
-set(CPPDB_VERSION 0.0.0)
+set(CPPDB_VERSION 0.1.0)
 set(CPPDB_SOVERSION 0)
 
 option(DISABLE_SQLITE	"Link sqlite3 backend into the libcppdb" OFF)

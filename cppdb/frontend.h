@@ -36,6 +36,7 @@ namespace cppdb {
 	class result;
 	class statement;
 	class session;
+	class connection_info;
 
 	
 	namespace backend {
@@ -881,6 +882,12 @@ namespace cppdb {
 		~session();
 
 		///
+		/// Create a session using a parsed connection string \a ci 
+		///
+		/// \copydetails cppdb::parse_connection_string(std::string const&,std::string&,std::map<std::string,std::string>&);
+		///
+		session(connection_info const &ci);
+		///
 		/// Create a session using a connection string \a cs.
 		///
 		/// \copydetails cppdb::parse_connection_string(std::string const&,std::string&,std::map<std::string,std::string>&);
@@ -892,6 +899,10 @@ namespace cppdb {
 		///
 		session(ref_ptr<backend::connection> conn);
 		
+		///
+		/// Open a session using a connection_info object - parsed connection string \a ci.
+		///
+		void open(connection_info const &ci);
 		///
 		/// Open a session using a connection string \a cs.
 		///
