@@ -20,7 +20,7 @@
 #include <cppdb/backend.h>
 #include <cppdb/utils.h>
 #include <cppdb/pool.h>
-#include <iostream>
+
 #include <map>
 #include <list>
 
@@ -249,7 +249,11 @@ namespace cppdb {
 				p->put(c);
 			else {
 				c->clear_cache();
+				// Make sure that driver would not be
+				// destoryed destructor of connection exits
+				ref_ptr<loadable_driver> driver = c->driver_;
 				delete c;
+				driver.reset();
 			}
 		}
 		
