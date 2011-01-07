@@ -4,6 +4,9 @@ CppDB is an SQL connectivity library that is designed to provide platform
 and Database independent connectivity API similarly to what JDBC, ODBC and
 other connectivity libraries do.
 
+This library is developed as part of <a href="http://cppcms.sourceforge.net">CppCMS Project</a> -
+the C++ Web Development Framework.
+
 CppDB was designed with following goals in the mind:
 
 - Performance is the primary goal - make fastest possible SQL connectivity as possible
@@ -19,7 +22,8 @@ CppDB was designed with following goals in the mind:
 This library was developed on the base of experience with SOCI, libdbi and
 other SQL Connectivity libraries.
 
-The library is released under LGPLv3 license.
+The CppDB library, version 0.0.3 and above, is released under Boost Software License 1.0 or The MIT license
+at your opinion, CppDB version 0.0.2 and below is released under terms of LGPLv3 license.
 
 This manual is divided in the following parts:
 
