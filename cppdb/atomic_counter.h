@@ -1,19 +1,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                             
-//  Copyright (C) 2010  Artyom Beilis (Tonkikh) <artyomtnk@yahoo.com>     
+//  Copyright (C) 2010-2011  Artyom Beilis (Tonkikh) <artyomtnk@yahoo.com>     
 //                                                                             
-//  This program is free software: you can redistribute it and/or modify       
-//  it under the terms of the GNU Lesser General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
+//  Distributed under:
 //
-//  This program is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU Lesser General Public License for more details.
+//                   the Boost Software License, Version 1.0.
+//              (See accompanying file LICENSE_1_0.txt or copy at 
+//                     http://www.boost.org/LICENSE_1_0.txt)
 //
-//  You should have received a copy of the GNU Lesser General Public License
-//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//  or (at your opinion) under:
+//
+//                               The MIT License
+//                 (See accompanying file MIT.txt or a copy at
+//              http://www.opensource.org/licenses/mit-license.php)
 //
 ///////////////////////////////////////////////////////////////////////////////
 #ifndef CPPDB_ATOMIC_COUNT_H
