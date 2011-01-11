@@ -276,8 +276,7 @@ namespace cppdb {
 				params_(0),
 				blob_(b)
 			{
-				std::ostringstream ss;
-				ss.imbue(std::locale::classic());
+				fmt_.imbue(std::locale::classic());
 
 				query_.reserve(src_query.size());
 				bool inside_string=false;
@@ -289,9 +288,10 @@ namespace cppdb {
 					if(!inside_string && c=='?') {
 						query_+='$';
 						params_++;
-						ss<<params_;
-						query_+=ss.str();
-						ss.str("");
+						fmt_<<params_;
+						query_+=fmt_.str();
+						fmt_.str(std::string());
+						fmt_.clear();
 					}
 					else {
 						query_+=c;
@@ -301,9 +301,12 @@ namespace cppdb {
 
 				if(prepared_id > 0) {
 
-					ss.str("");
-					ss<<"cppdb_psqlstmt_" << prepared_id;
-					prepared_id_ = ss.str();
+					fmt_.str(std::string());
+					fmt_.clear();
+					fmt_<<"cppdb_psqlstmt_" << prepared_id;
+					prepared_id_ = fmt_.str();
+					fmt_.str(std::string());
+					fmt_.clear();
 
 					PGresult *r=PQprepare(conn_,prepared_id_.c_str(),query_.c_str(),0,0);
 					try {
@@ -428,13 +431,15 @@ namespace cppdb {
 			void do_bind(int col,T v)
 			{
 				check(col);
-				std::ostringstream ss;
-				ss.imbue(std::locale::classic());
+				fmt_.str(std::string());
+				fmt_.clear();
 				if(!std::numeric_limits<T>::is_integer)
-					ss << std::setprecision(std::numeric_limits<T>::digits10+1);
-				ss << v;
-				params_values_[col-1]=ss.str();
+					fmt_ << std::setprecision(std::numeric_limits<T>::digits10+1);
+				fmt_ << v;
+				params_values_[col-1]=fmt_.str();
 				params_set_[col-1]=text_param;
+				fmt_.str(std::string());
+				fmt_.clear();
 			}
 
 			virtual void bind(int col,int v)
@@ -572,7 +577,7 @@ namespace cppdb {
 			virtual long long sequence_last(std::string const &sequence)
 			{
 				PGresult *res = 0;
-				long long rowid;
+				long long rowid = 0;
 				try {
 					char const * const param_ptr = sequence.c_str();
 					res = PQexecParams(	conn_,
@@ -590,8 +595,11 @@ namespace cppdb {
 					char const *val = PQgetvalue(res,0,0);
 					if(!val || *val==0)
 						throw pqerror("Failed to get value for sequecne id");
-					rowid = atoll(val);
-					
+					fmt_.str(val);
+					fmt_.clear();
+					fmt_ >> rowid;
+					fmt_.str(std::string());
+					fmt_.clear();
 				}
 				catch(...) {
 					if(res) PQclear(res);
@@ -606,7 +614,13 @@ namespace cppdb {
 					char const *s=PQcmdTuples(res_);
 					if(!s || !*s)
 						return 0;
-					return atoll(s);
+					unsigned long long rows = 0;
+					fmt_.str(s);
+					fmt_.clear();
+					fmt_ >> rows;
+					fmt_.str(std::string());
+					fmt_.clear();
+					return rows;
 				}
 				return 0;
 			}
@@ -631,6 +645,7 @@ namespace cppdb {
 			std::vector<size_t> params_plengths_;
 			std::vector<param_type> params_set_;
 			std::string prepared_id_;
+			std::stringstream fmt_;
 			blob_type blob_;
 		};
 
