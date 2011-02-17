@@ -16,6 +16,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #define CPPDB_DRIVER_SOURCE
+#ifdef CPPDB_WITH_MYSQL
+# define CPPDB_SOURCE
+#endif
 #include <mysql.h>
 
 #include <cppdb/backend.h>
