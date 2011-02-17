@@ -16,6 +16,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #define CPPDB_DRIVER_SOURCE
+#ifdef CPPDB_WITH_SQLITE3
+# define CPPDB_SOURCE
+#endif
 #include <sqlite3.h>
 
 #include <cppdb/backend.h>

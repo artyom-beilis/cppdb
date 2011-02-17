@@ -16,6 +16,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #define CPPDB_DRIVER_SOURCE
+#ifdef CPPDB_WITH_ODBC
+#define CPPDB_SOURCE
+#endif
 #include <cppdb/backend.h>
 #include <cppdb/utils.h>
 #include <cppdb/numeric_util.h>

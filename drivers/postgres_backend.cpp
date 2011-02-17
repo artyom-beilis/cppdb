@@ -16,6 +16,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #define CPPDB_DRIVER_SOURCE
+#ifdef CPPDB_WITH_PQ
+# define CPPDB_SOURCE
+#endif 
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 #include <cppdb/backend.h>
