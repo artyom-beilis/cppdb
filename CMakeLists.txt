@@ -265,6 +265,10 @@ add_executable(test_backend test/test_backend.cpp)
 add_executable(test_caching test/test_caching.cpp)
 add_executable(example examples/example1.cpp)
 
+set_target_properties(	test_perf test_backend test_basic test_caching example 
+			PROPERTIES 
+				COMPILE_DEFINITIONS CPPDB_EXPORTS)
+
 target_link_libraries(test_perf cppdb)
 target_link_libraries(test_basic cppdb)
 target_link_libraries(test_backend cppdb)
