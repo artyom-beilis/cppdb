@@ -398,7 +398,7 @@ namespace cppdb {
 		bool fetch(std::ostream &v);
 
 		///
-		/// Get a value of type \a T from column named \a name (starting from 0). If the column
+		/// Get a value of type \a T from column named \a name. If the column
 		/// is null throws null_value_fetch(), if the column \a name is invalid throws invalid_column,
 		/// if the column value cannot be converted to type T (see fetch functions) it throws bad_value_cast.
 		///	
@@ -411,7 +411,21 @@ namespace cppdb {
 				throw null_value_fetch();
 			return v;
 		}
-	
+
+		///
+		/// Get a value of type \a T from column named \a name. If the column
+		/// is null returns \a def, if the column \a name is invalid throws invalid_column,
+		/// if the column value cannot be converted to type T (see fetch functions) it throws bad_value_cast.
+		///	
+		template<typename T>
+		T get(std::string const &name, T const &def)
+		{
+			T v=T();
+			if(!fetch(name,v))
+				return def;
+			return v;
+		}
+
 		///
 		/// Get a value of type \a T from column \a col (starting from 0). If the column
 		/// is null throws null_value_fetch(), if the column index is invalid throws invalid_column,
@@ -423,6 +437,20 @@ namespace cppdb {
 			T v=T();
 			if(!fetch(col,v))
 				throw null_value_fetch();
+			return v;
+		}
+
+		///
+		/// Get a value of type \a T from column \a col (starting from 0). If the column
+		/// is null returns \a def, if the column index is invalid throws invalid_column,
+		/// if the column value cannot be converted to type T (see fetch functions) it throws bad_value_cast.
+		///	
+		template<typename T>
+		T get(int col, T const &def)
+		{
+			T v=T();
+			if(!fetch(col,v))
+				return def;
 			return v;
 		}
 
