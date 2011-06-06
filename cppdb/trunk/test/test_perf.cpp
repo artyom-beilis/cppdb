@@ -19,6 +19,65 @@
 #include <iostream>
 #include <stdlib.h>
 
+#if defined WIN32  || defined _WIN32 || defined __WIN32 || defined(__CYGWIN__)
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
+class timer {
+public:
+	timer()
+	{
+		QueryPerformanceFrequency(&freq_);
+	}
+	void start()
+	{
+		QueryPerformanceCounter(&start_);
+	}
+	void stop()
+	{
+		QueryPerformanceCounter(&stop_);
+	}
+	double diff() const
+	{
+		return double(stop_.QuadPart - start_.QuadPart) / freq_.QuadPart;
+	}
+private:
+	LARGE_INTEGER freq_;
+	LARGE_INTEGER start_;
+	LARGE_INTEGER stop_;
+};
+
+#else 
+
+#include <sys/time.h>
+
+class timer {
+public:
+	timer() {}
+	void start()
+	{
+		gettimeofday(&start_,0);
+	}
+	void stop()
+	{
+		gettimeofday(&stop_,0);
+	}
+	double diff() const
+	{
+		double udiff = (stop_.tv_sec  - start_.tv_sec) * 1000000LL + stop_.tv_usec - start_.tv_usec;
+		return udiff * 1e-6;
+	}
+private:
+	struct timeval start_;
+	struct timeval stop_;
+};
+
+
+#endif
+
 int main(int argc,char **argv)
 {
 	if(argc!=2) {
@@ -43,8 +102,10 @@ int main(int argc,char **argv)
 			}
 			tr.commit();
 		}
+		
+		timer tm;
 
-		time_t start = time(0);
+		tm.start();
 		
 		for(int j=0;j<max_val * 10;j++) {
 			std::string v;
@@ -52,8 +113,8 @@ int main(int argc,char **argv)
 			if(v!="Hello World")
 				throw std::runtime_error("Wrong");
 		}
-		time_t stop = time(0);
-		std::cout << "Passed " << stop - start << " seconds" << std::endl;
+		tm.stop();
+		std::cout << "Passed " << tm.diff() << " seconds" << std::endl;
 	}
 	catch(std::exception const &e) {
 		std::cerr << e.what() << std::endl;
