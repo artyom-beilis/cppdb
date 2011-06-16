@@ -549,8 +549,24 @@ namespace cppdb {
 		///
 		/// You must use it if you use the same statement multiple times.
 		///
+		/// Note, it is different from clear() where the statement is fully released and access to
+		/// it would throw an exception
+		///
 		void reset();
 
+		///
+		/// Clear the statement, removes it, any access to statement object would throw an exception till it would
+		/// be assigned once again
+		///
+		
+		void clear();
+
+		///
+		/// Check if the statement is empty, it is empty when created with default constructor or when cleared 
+		/// with clear() member function.
+		///
+		bool empty() const;
+		
 		///
 		/// Bind a value \a v to the next placeholder (starting from the first) marked with '?' marker in the query.
 		///
