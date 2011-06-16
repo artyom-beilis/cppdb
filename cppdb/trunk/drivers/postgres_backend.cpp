@@ -763,6 +763,7 @@ namespace cppdb {
 						PQfinish(conn_);
 						conn_ = 0;
 					}
+					throw;
 				}
 			}
 			virtual ~connection()
