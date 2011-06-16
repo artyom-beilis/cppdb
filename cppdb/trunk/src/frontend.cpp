@@ -218,6 +218,17 @@ namespace cppdb {
 	{
 	}
 
+	bool statement::empty() const
+	{
+		return !stat_;
+	}
+
+	void statement::clear()
+	{
+		stat_.reset();
+		conn_.reset();
+	}
+
 	void statement::reset()
 	{
 		placeholder_ = 1;
