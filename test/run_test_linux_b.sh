@@ -13,12 +13,15 @@ run_test()
 }
 
 
-rm -f all.txt fail.txt 
+rm -f all.txt fail.txt
+# 'odbc:@engine=sqlite3;Driver=Sqlite3;database=/tmp/test.db' \
 
 for STR in \
 	'sqlite3:db=test.db' \
-	'odbc:Driver=SQL Server Native Client 10.0;Databse=test;Server=localhost;UID=root;PWD=rootroot;@engine=mssql' \
-	'odbc:Driver=SQL Server Native Client 10.0;Databse=test;Server=localhost;UID=root;PWD=rootroot;@engine=mssql;@utf=wide' \
+	'postgresql:dbname=test' \
+	'mysql:user=root;password=root;database=test' \
+	'odbc:@engine=postgresql;Database=test;Driver=Postgresql ANSI' \
+	'odbc:@engine=mysql;UID=root;PWD=root;Database=test;Driver=MySQL' \
 
 do
 	for SUFFIX in '' ';@use_prepared=off' ';@pool_size=5' ';@use_prepared=off;@pool_size=5'
@@ -29,5 +32,3 @@ do
 done
 
 run_test ./test_caching
-
-
