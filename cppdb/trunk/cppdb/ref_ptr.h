@@ -85,7 +85,7 @@ namespace cppdb {
 		T *operator->() const
 		{
 			if(!p)
-				throw cppdb_error("Attempt to access an empty object");
+				throw cppdb_error("cppdb::ref_ptr: attempt to access an empty object");
 			return p;
 		}
 		///
@@ -94,7 +94,7 @@ namespace cppdb {
 		T &operator*() const
 		{
 			if(!p)
-				throw cppdb_error("Attempt to access an empty object");
+				throw cppdb_error("cppdb::ref_ptr: attempt to access an empty object");
 			return *p;
 		}
 		///
