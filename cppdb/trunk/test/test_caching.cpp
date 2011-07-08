@@ -31,6 +31,7 @@ void sleep(int x)
 }
 #else
 # include <stdlib.h>
+# include <unistd.h>
 #endif
 
 void test_driver_manager()
