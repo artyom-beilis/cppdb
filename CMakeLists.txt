@@ -219,7 +219,9 @@ add_library(cppdb-static STATIC ${CPPDB_SRC})
 set_target_properties(cppdb PROPERTIES COMPILE_DEFINITIONS CPPDB_EXPORTS)
 
 if(NOT WIN32)
-	target_link_libraries(cppdb ${DL_LIB})
+	if(DL_LIB)
+		target_link_libraries(cppdb ${DL_LIB})
+	endif()
 	target_link_libraries(cppdb ${PTHREAD_LIB})
 endif()
 
