@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(cppdb)
 
-set(CPPDB_VERSION 0.1.0)
+set(CPPDB_VERSION 0.2.0)
 set(CPPDB_SOVERSION 0)
 
 option(DISABLE_SQLITE	"Link sqlite3 backend into the libcppdb" OFF)
@@ -13,7 +13,7 @@ option(DISABLE_ODBC	"Link odbc backend into the libcppdb" OFF)
 option(SQLITE_BACKEND_INTERNAL	"Link sqlite3 backend into the libcppdb" OFF)
 option(PQ_BACKEND_INTERNAL 	"Link postgresql backend into the libcppdb" OFF)
 option(MYSQL_BACKEND_INTERNAL	"Link mysql backend into the libcppdb" OFF)
-option(ODBC_BACKEND_INTERNAL	"Link odbc backend into the libcppdb" OFF)
+option(ODBC_BACKEND_INTERNAL	"Link odbc backend into the libcppdb" ON)
 
 
 # General settings

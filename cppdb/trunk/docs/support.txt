@@ -5,12 +5,16 @@ CppDB was tested on following platforms:
 - Linux x86_64 with mysql, sqlite3, postgresql and odbc backends.
 - Windows XP Pro with sqlite3 and odbc backends.
 - Cygwin with sqlite3 backend.
+- Darwin 8, x86 with sqlite3 backend
+- OpenSolaris 2009.06 with sqlite3 backend
+- FreeBSD 8.0 with sqlite3 backend
 
 CppDB was tested with following compilers:
 
 - GCC-4.3, GCC-4.4, GCC-4.5, GCC-4.5/C++0x
 - MSVC 2008
 - Intel Compiler 11.0
+- SunStudio 5.11 with and without stlport
 
 CppDB was tested with following databases:
 

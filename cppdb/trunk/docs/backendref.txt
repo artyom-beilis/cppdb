@@ -142,6 +142,9 @@ name of the sequence is ignored.
 ODBC backend allows to connect to almost any existing SQL database via ODBC driver and
 provides much more convenient interface that ODBC C API.
 
+Unlike other backends, this one is not loaded dynamically by default but rather linked directly
+to cppdb library.
+
 \section conn Connection String
 
 The driver name is "odbc", but the cppdb::session::engine() returns "unknown" unless "@engine" property is specified.

@@ -515,7 +515,6 @@ namespace prep {
 				for(int i=0;i<cols_;i++) {
 					if(bind_data_[i].error && !bind_data_[i].is_null && bind_data_[i].length >= sizeof(bind_data_[i].buf)) {
 						bind_data_[i].vbuf.resize(bind_data_[i].length);
-						MYSQL_BIND b=MYSQL_BIND();
 						bind_[i].buffer = &bind_data_[i].vbuf.front();
 						bind_[i].buffer_length = bind_data_[i].length;
 						if(mysql_stmt_fetch_column(stmt_,&bind_[i],i,0)) {

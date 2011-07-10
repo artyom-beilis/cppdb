@@ -946,10 +946,8 @@ public:
 		params_no_(-1),
 		prepared_(prepared)
 	{
-		bool stmt_created = false;
 		SQLRETURN r = SQLAllocHandle(SQL_HANDLE_STMT,dbc,&stmt_);
 		check_odbc_error(r,dbc,SQL_HANDLE_DBC,wide_);
-		stmt_created = true;
 		if(prepared_) {
 			try {
 				if(wide_) {
