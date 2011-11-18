@@ -160,7 +160,7 @@ endif()
 
 if(NOT DISABLE_PQ)
 	find_library(PQ_LIB pq)
-	find_path(PQ_PATH libpq-fe.h PATH_SUFFIXES postgresql)
+	find_path(PQ_PATH libpq-fe.h PATH_SUFFIXES postgresql pgsql)
 	if(PQ_LIB AND PQ_PATH)
 		include_directories(${PQ_PATH})
 		if(PQ_BACKEND_INTERNAL)
