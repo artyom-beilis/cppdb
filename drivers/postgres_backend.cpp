@@ -756,7 +756,7 @@ namespace cppdb {
 					if(!conn_)
 						throw pqerror("failed to create connection object");
 					if(PQstatus(conn_)!=CONNECTION_OK)
-						throw pqerror("failed to connect");
+						throw pqerror(conn_,"failed to connect");
 				}
 				catch(...) {
 					if(conn_) {
