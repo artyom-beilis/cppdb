@@ -33,11 +33,13 @@ Basic use:
 - \subpage connstr
 - \subpage stat
 - \subpage query
+- \subpage pool
 - \subpage transaction
 - \subpage escaping
 - \subpage backendref 
 - \subpage build
 - \subpage support
+- \subpage changelog
 
 Advanced use:
 

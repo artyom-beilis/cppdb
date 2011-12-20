@@ -481,6 +481,10 @@ namespace cppdb {
 	session::session(ref_ptr<backend::connection> conn) : conn_(conn)
 	{
 	}
+	session::session(ref_ptr<backend::connection> conn,once_functor const &f) : conn_(conn)
+	{
+		once(f);
+	}
 	session::~session()
 	{
 	}
