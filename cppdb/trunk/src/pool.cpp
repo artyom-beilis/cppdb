@@ -146,6 +146,15 @@ namespace cppdb {
 		put(0);
 	}
 
+	void pool::clear()
+	{
+		pool_type garbage;
+		{
+			mutex::guard l(lock_);
+			garbage.swap(pool_);
+			size_ = 0;
+		} // destroy outside mutex scope
+	}
 }
 
 

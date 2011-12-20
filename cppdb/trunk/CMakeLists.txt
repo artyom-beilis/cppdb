@@ -1,8 +1,19 @@
 cmake_minimum_required(VERSION 2.6)
 project(cppdb)
 
-set(CPPDB_VERSION 0.2.0)
-set(CPPDB_SOVERSION 0)
+set(CPPDB_MAJOR 0)
+set(CPPDB_MINOR 3)
+set(CPPDB_PATCH 0)
+
+set(CPPDB_VERSION ${CPPDB_MAJOR}.${CPPDB_MINOR}.${CPPDB_PATCH})
+set(CPPDB_SOVERSION ${CPPDB_MAJOR})
+
+add_definitions(
+		-DCPPDB_MAJOR=${CPPDB_MAJOR}
+		-DCPPDB_MINOR=${CPPDB_MINOR}
+		-DCPPDB_PATCH=${CPPDB_PATCH}
+		-DCPPDB_VERSION="${CPPDB_MAJOR}.${CPPDB_MINOR}.${CPPDB_PATCH}"
+	)
 
 option(DISABLE_SQLITE	"Link sqlite3 backend into the libcppdb" OFF)
 option(DISABLE_PQ 	"Link postgresql backend into the libcppdb" OFF)

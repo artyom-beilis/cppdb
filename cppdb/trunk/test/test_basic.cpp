@@ -16,14 +16,43 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #include <cppdb/frontend.h>
+#include <cppdb/connection_specific.h>
 #include <iostream>
 #include <sstream>
 
 #define TEST(x) do { if(x) break; std::ostringstream ss; ss<<"Failed in " << __LINE__ <<' '<< #x; throw std::runtime_error(ss.str()); } while(0)
 
+class my_specific_a : public cppdb::connection_specific_data {
+public:
+	int val;
+	my_specific_a(int v=0) : val(v) {}
+};
+
+class my_specific_b : public cppdb::connection_specific_data {
+public:
+	int val;
+	my_specific_b(int v=0) : val(v) {}
+};
+
+int call_counter = 0;
+
+void caller(cppdb::session &)
+{
+	call_counter++;
+}
+
+struct functor_caller {
+	void operator()(cppdb::session &) const
+	{
+		call_counter++;
+	}
+};
+
 
 int main(int argc,char **argv)
 {
+	std::cout 	<< "Testing CppDB version `" << cppdb::version_string() 
+			<< "' " << cppdb::version_number() << std::endl;
 	std::string cs = "sqlite3:db=db.db";
 	if(argc >= 2) {
 		cs = argv[1];
@@ -115,6 +144,7 @@ int main(int argc,char **argv)
 		int val;
 		res >> val;
 		TEST(val == 10);
+		res.clear();
 
 		cppdb::statement stat = sql<<"delete from test where 1<>0" << cppdb::exec;
 		std::cout<<"Deleted "<<stat.affected()<<" rows\n";
@@ -123,6 +153,38 @@ int main(int argc,char **argv)
 		stat.clear();
 		TEST(stat.empty());
 		TEST(cppdb::statement().empty());
+
+		sql.reset_specific(new my_specific_a(10));
+		TEST(sql.get_specific<my_specific_b>()==0);
+		TEST(sql.get_specific<my_specific_a>()!=0);
+		TEST(sql.get_specific<my_specific_a>()->val==10);
+		sql.reset_specific(new my_specific_b(20));
+		TEST(sql.get_specific<my_specific_b>()!=0);
+		TEST(sql.get_specific<my_specific_a>()!=0);
+		TEST(sql.get_specific<my_specific_a>()->val==10);
+		TEST(sql.get_specific<my_specific_b>()->val==20);
+		sql.reset_specific<my_specific_b>();
+		TEST(sql.get_specific<my_specific_b>()==0);
+		TEST(sql.get_specific<my_specific_a>()!=0);
+		my_specific_a *p = sql.release_specific<my_specific_a>();
+		TEST(p!=0);
+		delete p;
+		TEST(sql.get_specific<my_specific_a>()==0);
+		TEST(sql.release_specific<my_specific_a>() == 0);
+		
+		TEST(call_counter == 0);
+		TEST(sql.once_called()==false);
+		sql.once(caller);
+		TEST(sql.once_called()==true);
+		TEST(call_counter == 1);
+		sql.once(caller);
+		TEST(call_counter == 1);
+		sql.close();
+		bool have_pool = cs.find("@pool_size")!=std::string::npos;
+		sql.open(cs);
+		TEST(sql.once_called()==have_pool);
+		sql.once(functor_caller());
+		TEST(have_pool ? call_counter == 1 : call_counter == 2);
 	}
 	catch(std::exception const &e) {
 		std::cerr << "ERROR: " << e.what() << std::endl;

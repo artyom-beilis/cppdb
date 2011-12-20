@@ -25,6 +25,7 @@
 #include <ctime>
 #include <string>
 #include <memory>
+#include <typeinfo>
 
 ///
 /// The namespace of all data related to the cppdb api
@@ -36,7 +37,20 @@ namespace cppdb {
 	class statement;
 	class session;
 	class connection_info;
+	class connection_specific_data;
 
+	///
+	/// Get CppDB Version String. It consists of "A.B.C", where A
+	/// is a major version number, B is a minor version number and 
+	/// C is patch version
+	///
+	CPPDB_API char const *version_string();
+	///
+	/// Return CppDB version as a number as a sum A * 10000 + B * 100 + C
+	/// where A is a major version number, B is a minor version number and 
+	/// C is patch version
+	///
+	CPPDB_API int version_number();
 	
 	namespace backend {
 		class result;
@@ -111,6 +125,69 @@ namespace cppdb {
 		return tags::use_tag<T>(value,tag);
 	}
 
+	/// \cond INTERNAL
+	namespace details {
+		template<typename Object>
+		class functor {
+		public:
+			functor(functor const &other)  : 
+				functor_(other.functor_),
+				wrapper_(other.wrapper_)
+			{
+			}
+			functor const &operator=(functor const &other) 
+			{
+				functor_ = other.functor_;
+				wrapper_ = other.wrapper_;
+				return *this;
+			}
+			functor(void (*func)(Object &))
+			{
+				functor_ = reinterpret_cast<void *>(reinterpret_cast<size_t>(func));
+				wrapper_ = &functor::call_func;
+				
+			}
+			template<typename RealFunctor>
+			functor(RealFunctor const &f)
+			{
+				// The usual casts are not enough for all compilers
+				functor_ = reinterpret_cast<void const *>(&f);
+				wrapper_ = &functor<Object>::template call_it<RealFunctor>;
+			}
+			void operator()(Object &p) const
+			{
+				wrapper_(functor_,p);
+			}
+		private:
+			static void call_func(void const *pointer,Object &parameter)
+			{
+				typedef void function_type(Object &);
+				function_type *f = reinterpret_cast<function_type *>(reinterpret_cast<size_t>((pointer)));
+				f(parameter);
+			}
+			template<typename Functor>
+			static void call_it(void const *pointer,Object &parameter)
+			{
+				Functor const *f_ptr = reinterpret_cast<Functor const *>(pointer);
+				Functor const &f=*f_ptr;
+				f(parameter);
+			}
+			void const *functor_;
+			void (*wrapper_)(void const *,Object &);
+		};
+	} // details
+	/// \endcond
+
+	#ifdef CPPDB_DOXYGEN
+	///
+	/// Special object that can be constructed from generic function like object \a f.
+	///
+	/// So once_functor(f) can be created if f can be used like f(s) where s is \ref cppdb::session
+	///
+	typedef unspecified_class_type once_functor;
+	#else
+	typedef details::functor<session> once_functor;
+	#endif
 
 	///
 	/// \brief This object represents query result.
@@ -936,7 +1013,32 @@ namespace cppdb {
 		/// \copydetails cppdb::parse_connection_string(std::string const&,std::string&,std::map<std::string,std::string>&);
 		///
 		session(std::string const &cs);
-
+		///
+		/// Create a session using a parsed connection string \a ci and call \a f if
+		/// a \ref once() was not called yet.
+		///
+		/// It is useful for setting session specific options for new
+		/// connection, not reused from the pool one.
+		///
+		/// Requirements: \ref once_functor is an object that can be created from generic
+		/// function like object func, such that func(*this) is valid expression
+		///
+		/// \copydetails cppdb::parse_connection_string(std::string const&,std::string&,std::map<std::string,std::string>&);
+		///
+		session(connection_info const &ci,once_functor const &f);
+		///
+		/// Create a session using a connection string \a cs and call \a f if 
+		/// a \ref once() was not called yet.
+		///
+		/// It is useful for setting session specific options for new
+		/// connection, not reused from the pool one.
+		///
+		/// Requirements: \ref once_functor is an object that can be created from generic
+		/// function like object func, such that func(*this) is valid expression
+		///
+		/// \copydetails cppdb::parse_connection_string(std::string const&,std::string&,std::map<std::string,std::string>&);
+		///
+		session(std::string const &cs,once_functor const &f);
 		///
 		/// Create a session using a pointer to backend::connection.
 		///
@@ -1000,6 +1102,13 @@ namespace cppdb {
 		void clear_cache();
 
 		///
+		/// Clear connections pool associated with this session's connection.
+		///
+		/// Automatically calls clear_cache(); 
+		///
+		void clear_pool();
+
+		///
 		/// Begin a transaction. Don't use it directly for RAII reasons. Use transaction class instead.
 		///
 		void begin();
@@ -1041,6 +1150,78 @@ namespace cppdb {
 		/// Get an SQL engine name, it may be not the same as driver name for multiple engine drivers like odbc.
 		///
 		std::string engine();
+		///
+		/// Check if this session's connection can be recycled for reuse in a pool.
+		///
+		/// If an exception is thrown during operation on DB this flag is reset
+		/// to false by the front-end classes result, statement, session.
+		///
+		/// Default is true 
+		/// 
+		bool recyclable();
+		
+		///
+		/// Set recyclable state of the session. If some problem occurs on connection
+		/// that prevents its reuse it should be called with false parameter.
+		/// 
+		void recyclable(bool value);
+
+		///
+		/// Returns true of session specific initialization is done, otherwise returns false
+		///
+		bool once_called();
+		///
+		/// Set flag to true if session specific initialization is done, otherwise set it to false
+		///
+		void once_called(bool state);
+		///
+		/// Call the functional \a f on the connection only once. If the connection
+		/// created first time then f would be called. If the connection is created 
+		/// from connection pool and thus setup functor was called, f would not be called.
+		///
+		/// Requirements: \ref once_functor is an object that can be created from generic
+		/// function like object func, such that func(*this) is valid expression
+		///
+		void once(once_functor const &f);
+		
+		
+		///
+		/// Get connection specific object by its type \a t, returns 0 if not installed yet
+		///
+		connection_specific_data *get_specific(std::type_info const &t);
+		///
+		/// Transfers ownership on the connection specific object of type \a t, returns 0 if not installed yet
+		///
+		connection_specific_data *release_specific(std::type_info const &t);
+		///
+		/// Deletes connection specific object of type \a t, and sets a new one \a p (if not NULL)
+		///
+		void reset_specific(std::type_info const &t,connection_specific_data *p=0);
+		
+		///
+		/// Get connection specific object by its type \a T, returns 0 if not installed yet
+		///
+		template<typename T>
+		T *get_specific()
+		{
+			return static_cast<T*>(get_specific(typeid(T)));
+		}
+		///
+		/// Transfers ownership on the connection specific object of type \a T, returns 0 if not installed yet
+		///
+		template<typename T>
+		T *release_specific()
+		{
+			return static_cast<T*>(release_specific(typeid(T)));
+		}
+		///
+		/// Deletes connection specific object of type \a T, and sets a new one \a p (if not NULL)
+		///
+		template<typename T>
+		void reset_specific(T *p=0)
+		{
+			reset_specific(typeid(T),p);
+		}
 
 	private:
 		struct data;
@@ -1075,6 +1256,7 @@ namespace cppdb {
 		///
 		void rollback();
 	private:
+		
 		struct data;
 		session *s_;
 		bool commited_;
