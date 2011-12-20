@@ -1406,7 +1406,7 @@ private:
 	void mysql_set_option(mysql_option option, const void* arg)
 	{
 		// char can be casted to void but not the other way, support older API
-		if(mysql_options(conn_, option, reinterpret_cast<char const *>(arg))) {
+		if(mysql_options(conn_, option, static_cast<char const *>(arg))) {
 			throw cppdb_error("cppdb::mysql failed to set option");
 		}
 	}

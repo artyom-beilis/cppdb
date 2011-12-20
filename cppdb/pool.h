@@ -63,6 +63,12 @@ namespace cppdb {
 		/// Collect connections that were not used for a long time (close them)
 		///
 		void gc();
+
+		///
+		/// Remove all connections from the pool
+		///
+		void clear();
+
 		/// \cond INTERNAL
 		void put(backend::connection *c_in);
 		/// \endcond
