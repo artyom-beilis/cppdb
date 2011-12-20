@@ -1040,6 +1040,18 @@ namespace cppdb {
 		///
 		session(std::string const &cs,once_functor const &f);
 		///
+		/// Create a session using a pointer to backend::connection and call \a f if 
+		/// a \ref once() was not called yet.
+		///
+		/// It is useful for setting session specific options for new
+		/// connection, not reused from the pool one.
+		///
+		/// Requirements: \ref once_functor is an object that can be created from generic
+		/// function like object func, such that func(*this) is valid expression
+		///
+		///
+		session(ref_ptr<backend::connection> conn,once_functor const &f);
+		///
 		/// Create a session using a pointer to backend::connection.
 		///
 		session(ref_ptr<backend::connection> conn);

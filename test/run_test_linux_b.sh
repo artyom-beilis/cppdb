@@ -15,10 +15,11 @@ run_test()
 
 rm -f all.txt fail.txt
 # 'odbc:@engine=sqlite3;Driver=Sqlite3;database=/tmp/test.db' \
+#	'postgresql:dbname=test' \
 
 for STR in \
+	'postgresql:dbname=test;@blob=bytea' \
 	'sqlite3:db=test.db' \
-	'postgresql:dbname=test' \
 	'mysql:user=root;password=root;database=test' \
 	'odbc:@engine=postgresql;Database=test;Driver=Postgresql ANSI' \
 	'odbc:@engine=mysql;UID=root;PWD=root;Database=test;Driver=MySQL' \
