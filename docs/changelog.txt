@@ -9,6 +9,7 @@ New Features:
 - Added version number API
 - Added an option to clear the connections pool
 - Changed library version format to Major.Minor.Patch
+- Added \c busy_timeout option to sqlite3 backend.
 
 Bugs:
 

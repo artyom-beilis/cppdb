@@ -23,12 +23,12 @@ The driver name is "mysql", cppdb::session::engine() returns "mysql"
 
 Connection Properties are:
 
-- host - the remote database host to connect. Default is local host.
-- user - the user name to login
-- password - the password to login
-- database - the name of the database to use - default unspecified
-- port - the port to connect - default unspecified
-- unix_socket - the socket to connect - default unspecified
+- \c host - the remote database host to connect. Default is local host.
+- \c user - the user name to login
+- \c password - the password to login
+- \c database - the name of the database to use - default unspecified
+- \c port - the port to connect - default unspecified
+- \c unix_socket - the socket to connect - default unspecified
 
 Additionaly you can customize the connection with MySQL option parameters.
 Current list of options is specified in http://dev.mysql.com/doc/refman/5.5/en/mysql-options.html .
@@ -70,11 +70,11 @@ the <a href="http://www.postgresql.org/docs/8.3/static/libpq-connect.html">libpq
 
 The most used properties are:
 
-- host - the remote database host to connect. Default is local host.
-- user - the user name to login
-- password - the password to login
-- dbname - the name of the database to use - default unspecified
-- port - the port to connect - default unspecified
+- \c host - the remote database host to connect. Default is local host.
+- \c user - the user name to login
+- \c password - the password to login
+- \c dbname - the name of the database to use - default unspecified
+- \c port - the port to connect - default unspecified
 
 \subsection connspec Special Properties
 
@@ -83,8 +83,8 @@ blob objects: "@blob"
 
 The possible values are:
 
-- "lo" use large object API to store Blobs. This is the default.it adds a restriction to accessing large objects only withing transaction and handing their lifetime using <a href="http://www.postgresql.org/docs/8.3/static/lo.html">lo module</a>. This option has an advantage of small memory footprint when dealing with large objects as it does not require storing full object in memory.
-- "bytea" - treat Blobs as bytea columns. This is simpler method but it is applicable only for objects that can fit to memory.
+- \c lo use large object API to store Blobs. This is the default.it adds a restriction to accessing large objects only withing transaction and handing their lifetime using <a href="http://www.postgresql.org/docs/8.3/static/lo.html">lo module</a>. This option has an advantage of small memory footprint when dealing with large objects as it does not require storing full object in memory.
+- \c bytea - treat Blobs as bytea columns. This is simpler method but it is applicable only for objects that can fit to memory.
 
 
 \section impl Implementation Details
@@ -119,10 +119,11 @@ The driver name is "sqlite3", cppdb::session::engine() returns "sqlite3"
 
 Connection Properties are:
 
-- db - the path to sqlite3 database file, special name ":memory:" can be used as well.
-- mode - the mode to open connection with, one of "create", "readonly" and "readwrite", default is "create". The difference between 
+- \c db - the path to sqlite3 database file, special name ":memory:" can be used as well.
+- \c mode - the mode to open connection with, one of "create", "readonly" and "readwrite", default is "create". The difference between 
   "readwrite" and "create" that if the database does not exist the connection fails.
-
+- \c busy_timeout - the equivalent of \c sqlite3_busy_timeout function. Specifies the minimal number of milliseconds
+  to wait before returning a error if the database is locked by another process. 
 
 \section impl Implementation Details
 
@@ -158,19 +159,19 @@ odbc:DSN=MySource;UID=myuser;PWD=secret
 
 However there are several additional internal properties that define how cppdb treats the ODBC connection:
 
-- \@engine - the type of underlying database engine, it allows the backend to customise the behavior and 
+- \c \@engine - the type of underlying database engine, it allows the backend to customise the behavior and 
 provide support for features missing in ODBC API itself.
 \n
 Currently following engine names provide additional values: "mysql", "sqlite3", "postgresql", "mssql". It allows
 the driver to support cppdb::statement::sequence_last() or cppdb::statement::last_insert_id() functionality.
-- \@utf - with options "narrow" - the default and "wide". This option specifies how to deal with Unicode. If the "narrow"
+- \c \@utf - with options "narrow" - the default and "wide". This option specifies how to deal with Unicode. If the "narrow"
 option is used (default) it would pass strings as is to the backend assuming that is supports UTF-8 natively using so 
 called "ANSI" API , otherwise, it would use so called "Wide" API and convert the strings to UTF-16 and use wide character
 functions.
 \n
 \note you should almost always use narrow option as most ODBC drivers support UTF-8 happily, however when you
 work with MS SQL under windows you would probably want to use wide API for operation on strings.
-- \@sequence_last - the SQL statement that is used for retrieving the last created id. You need to specify this if you
+- \c \@sequence_last - the SQL statement that is used for retrieving the last created id. You need to specify this if you
 want to use cppdb::statement::sequence_last() or cppdb::statement::last_insert_id() and the engine is not one of mysql sqlite3, postgresql or mssql.
 \n If the statement contains "?" mark the parameter of cppdb::statement::sequence_last() would be binded to it, otherwise the parameter is ignored.
 
@@ -182,10 +183,10 @@ is fetched using SQLGetData in order to support variable text length.
 
 Following statements are used for fetching last insert id:
 
-- sqlite3 - "select last_insert_rowid()"
-- mysql - "select last_insert_id()"
-- postgresql - "select currval(?)"
-- mssql - "select @@identity"
+- \c sqlite3 - "select last_insert_rowid()"
+- \c mysql - "select last_insert_id()"
+- \c postgresql - "select currval(?)"
+- \c mssql - "select @@identity"
 
 If the engine is not one of the above and "@sequence_last" property is not defined the cppdb::not_supported_by_backend exception
 would be thrown.
