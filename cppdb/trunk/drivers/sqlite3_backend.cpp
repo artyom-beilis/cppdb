@@ -399,17 +399,32 @@ namespace cppdb {
 
 				std::string vfs = ci.get("vfs");
 				char const *cvfs = vfs.empty() ? (char const *)(0) : vfs.c_str();
-
-				if(sqlite3_open_v2(dbname.c_str(),&conn_,flags,cvfs)!=SQLITE_OK) {
-					if(conn_ == 0) {
-						throw cppdb_error("sqlite3:failed to create db object");
+				
+				int busy = ci.get("busy_timeout",-1);
+				
+				try {
+					if(sqlite3_open_v2(dbname.c_str(),&conn_,flags,cvfs)!=SQLITE_OK) {
+						if(conn_ == 0) {
+							throw cppdb_error("sqlite3:failed to create db object");
+						}
+						
+						throw cppdb_error(std::string("sqlite3:Failed to open connection:")
+								+ sqlite3_errmsg(conn_));
+						
+						if(busy!=-1 && sqlite3_busy_timeout(conn_,busy)!=0) {
+							throw cppdb_error(std::string("sqlite3:Failed to set timeout:")
+									+ sqlite3_errmsg(conn_));
+						}
 					}
-					std::string error_message;
-					try { error_message = sqlite3_errmsg(conn_); }catch(...){}
-					sqlite3_close(conn_);
-					conn_ = 0;
-					throw cppdb_error("sqlite3:Failed to open connection:" + error_message);
 				}
+				catch(...) {
+					if(conn_) {
+						sqlite3_close(conn_);
+						conn_ = 0;
+					}
+					throw;
+				}
+				
 			}
 			virtual ~connection() 
 			{
