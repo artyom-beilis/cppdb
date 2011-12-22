@@ -658,7 +658,7 @@ namespace cppdb {
 
 	bool session::recyclable()
 	{
-		return conn_-recyclable();
+		return conn_->recyclable();
 	}
 	void session::recyclable(bool v)
 	{
