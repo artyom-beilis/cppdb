@@ -88,7 +88,7 @@ namespace cppdb {
 		struct entry {
 			entry() : last_used(0) {}
 			ref_ptr<backend::connection> conn;
-			time_t last_used;
+			std::time_t last_used;
 		};
 
 		typedef std::list<entry> pool_type;

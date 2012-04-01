@@ -582,7 +582,7 @@ class statement : public backend::statement {
 		}
 		void set(std::tm const &v)
 		{
-			value = format_time(v);
+			value = cppdb::format_time(v);
 			null=false;
 			sqltype = SQL_C_TIMESTAMP;
 			ctype = SQL_C_CHAR;

@@ -21,6 +21,11 @@
 #include <cppdb/errors.h>
 #include <cppdb/ref_ptr.h>
 
+// Borland errors about unknown pool-type without this include.
+#ifdef __BORLANDC__
+#include <cppdb/backend.h>
+#endif
+
 #include <iosfwd>
 #include <ctime>
 #include <string>
@@ -52,11 +57,14 @@ namespace cppdb {
 	///
 	CPPDB_API int version_number();
 	
+// Borland needs pool.h, but not this forward declaration.
+#ifndef __BORLANDC__
 	namespace backend {
 		class result;
 		class statement;
 		class connection;
 	}
+#endif
 	
 	///
 	/// Null value marker
@@ -724,6 +732,17 @@ namespace cppdb {
 		///
 		statement &bind_null();
 
+// Without the following statement &operator<<(T v) errors for tags::use_tag<T> as T.
+#ifdef __BORLANDC__
+		template<typename T>
+		statement &bind(tags::use_tag<T> const &val)
+		{
+			if(val.tag == null_value)
+				return bind_null();
+			else
+				return bind(val.value);
+		}
+#endif
 
 		///
 		/// Bind a value \a v to the placeholder number \a col (starting from 1) marked with '?' marker in the query.

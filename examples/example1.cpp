@@ -35,7 +35,7 @@ int main()
 			"   name TEXT "
 			")  " << cppdb::exec;
 		
-		time_t now_time = std::time(0);
+		std::time_t now_time = std::time(0);
 		
 		std::tm now = *std::localtime(&now_time);
 
