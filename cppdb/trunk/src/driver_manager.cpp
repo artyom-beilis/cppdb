@@ -191,9 +191,12 @@ namespace cppdb {
 		no_default_directory_(false)
 	{
 	}
+// Borland erros on hidden destructors in classes without only static methods.
+#ifndef __BORLANDC__
 	driver_manager::~driver_manager()
 	{
 	}
+#endif
 	
 	void driver_manager::add_search_path(std::string const &p)
 	{

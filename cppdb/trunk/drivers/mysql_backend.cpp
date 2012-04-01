@@ -301,7 +301,7 @@ namespace unprep {
 			s.clear();
 			s.reserve(30);
 			s+='\'';
-			s+=format_time(v);
+			s+=cppdb::format_time(v);
 			s+='\'';
 		}
 		virtual void bind(int col,std::istream &v)
@@ -821,7 +821,7 @@ namespace prep {
 			}
 			void set(std::tm const &t)
 			{
-				set_str(format_time(t));
+				set_str(cppdb::format_time(t));
 			}
 			void bind_it(MYSQL_BIND *b) 
 			{

@@ -28,9 +28,17 @@
 #include <cppdb/ref_ptr.h>
 #include <cppdb/connection_specific.h>
 
+// Borland errors about unknown pool-type without this include.
+#ifdef __BORLANDC__
+#include <cppdb/pool.h>
+#endif
+
 namespace cppdb {
 	class connection_info;
+// Borland needs pool.h, but not this forward declaration.
+#ifndef __BORLANDC__
 	class pool;
+#endif
 
 	///
 	/// \brief This namepace includes all classes required to implement a cppdb SQL backend.

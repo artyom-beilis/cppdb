@@ -85,9 +85,9 @@ int main(int argc,char **argv)
 			return 1;
 		}
 		std::tm t;
-		time_t tt;
-		tt=time(NULL);
-		t = *localtime(&tt);
+		std::time_t tt;
+		tt=std::time(NULL);
+		t = *std::localtime(&tt);
 		std::cout<<asctime(&t);
 		std::string torig=asctime(&t);
 		int n;
@@ -174,10 +174,10 @@ int main(int argc,char **argv)
 		
 		TEST(call_counter == 0);
 		TEST(sql.once_called()==false);
-		sql.once(caller);
+		sql.once(&caller);
 		TEST(sql.once_called()==true);
 		TEST(call_counter == 1);
-		sql.once(caller);
+		sql.once(&caller);
 		TEST(call_counter == 1);
 		sql.close();
 		bool have_pool = cs.find("@pool_size")!=std::string::npos;

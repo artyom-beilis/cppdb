@@ -227,8 +227,8 @@ void test3(cppdb::ref_ptr<cppdb::backend::connection> sql)
 	stmt->reset();
 	stmt->bind(1,10);
 	stmt->bind(2,3.14);
-	time_t now=time(0);
-	std::tm t=*localtime(&now);
+	std::time_t now=time(0);
+	std::tm t=*std::localtime(&now);
 	stmt->bind(3,t);
 	stmt->bind(4,"'to be' \\'or not' to be");
 	std::istringstream iss;

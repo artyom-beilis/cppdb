@@ -379,7 +379,7 @@ namespace cppdb {
 			virtual void bind(int col,std::tm const &v) 
 			{
 				check(col);
-				params_values_[col-1]=format_time(v);
+				params_values_[col-1]=cppdb::format_time(v);
 				params_set_[col-1]=text_param;
 			}
 			virtual void bind(int col,std::istream &in)

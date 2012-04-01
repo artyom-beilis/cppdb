@@ -250,7 +250,7 @@ namespace cppdb {
 			virtual void bind(int col,std::tm const &v)
 			{
 				reset_stat();
-				std::string tmp = format_time(v);
+				std::string tmp = cppdb::format_time(v);
 				check_bind(sqlite3_bind_text(st_,col,tmp.c_str(),tmp.size(),SQLITE_TRANSIENT));
 			}
 			virtual void bind(int col,std::istream &v) 
