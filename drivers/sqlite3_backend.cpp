@@ -235,17 +235,17 @@ namespace cppdb {
 			virtual void bind(int col,std::string const &v) 
 			{
 				reset_stat();
-				check_bind(sqlite3_bind_text(st_,col,v.c_str(),v.size(),SQLITE_STATIC));
+				check_bind(sqlite3_bind_text(st_,col,v.c_str(),v.size(),SQLITE_TRANSIENT));
 			}
 			virtual void bind(int col,char const *s)
 			{
 				reset_stat();
-				check_bind(sqlite3_bind_text(st_,col,s,-1,SQLITE_STATIC));
+				check_bind(sqlite3_bind_text(st_,col,s,-1,SQLITE_TRANSIENT));
 			}
 			virtual void bind(int col,char const *b,char const *e) 
 			{
 				reset_stat();
-				check_bind(sqlite3_bind_text(st_,col,b,e-b,SQLITE_STATIC));
+				check_bind(sqlite3_bind_text(st_,col,b,e-b,SQLITE_TRANSIENT));
 			}
 			virtual void bind(int col,std::tm const &v)
 			{
