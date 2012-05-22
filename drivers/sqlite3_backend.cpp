@@ -41,9 +41,13 @@ namespace cppdb {
 				st_(st),
 				conn_(conn),
 				column_names_prepared_(false),
-				cols_(-1)
+				cols_(-1),
+				stepped_(false),
+				step_result_(false)
 			{
 				cols_=sqlite3_column_count(st_);
+				stepped_ = true;
+				step_result_ = next();
 			}
 			virtual ~result() 
 			{
@@ -55,6 +59,10 @@ namespace cppdb {
 			}
 			virtual bool next() 
 			{
+				if(stepped_) {
+					stepped_ = false;
+					return step_result_;
+				}
 				int r = sqlite3_step(st_);
 				if(r==SQLITE_DONE)
 					return false;
@@ -216,6 +224,8 @@ namespace cppdb {
 			std::map<std::string,int> column_names_;
 			bool column_names_prepared_;
 			int cols_;
+			bool stepped_;
+			bool step_result_;
 		};
 
 		class statement : public backend::statement {
