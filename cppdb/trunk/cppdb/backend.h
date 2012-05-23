@@ -35,10 +35,10 @@
 
 namespace cppdb {
 	class connection_info;
-// Borland needs pool.h, but not this forward declaration.
-#ifndef __BORLANDC__
+	// Borland needs pool.h, but not this forward declaration.
+	#ifndef __BORLANDC__
 	class pool;
-#endif
+	#endif
 
 	///
 	/// \brief This namepace includes all classes required to implement a cppdb SQL backend.

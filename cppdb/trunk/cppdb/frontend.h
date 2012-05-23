@@ -57,14 +57,14 @@ namespace cppdb {
 	///
 	CPPDB_API int version_number();
 	
-// Borland needs pool.h, but not this forward declaration.
-#ifndef __BORLANDC__
+	// Borland needs pool.h, but not this forward declaration.
+	#ifndef __BORLANDC__
 	namespace backend {
 		class result;
 		class statement;
 		class connection;
 	}
-#endif
+	#endif
 	
 	///
 	/// Null value marker

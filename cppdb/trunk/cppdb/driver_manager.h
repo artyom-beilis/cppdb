@@ -76,10 +76,10 @@ namespace cppdb {
 	private:
 		driver_manager(driver_manager const &);
 		void operator=(driver_manager const &);
-// Borland erros on hidden destructors in classes without only static methods.
-#ifndef __BORLANDC__
+		// Borland erros on hidden destructors in classes without only static methods.
+		#ifndef __BORLANDC__
 		~driver_manager();
-#endif
+		#endif
 		driver_manager();
 		
 		ref_ptr<backend::driver> load_driver(connection_info const &ci);
