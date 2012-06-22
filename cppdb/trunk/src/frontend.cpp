@@ -641,7 +641,12 @@ namespace cppdb {
 	}
 	transaction::~transaction()
 	{
-		rollback();
+		try {
+			rollback();
+		}
+		catch(...)
+		{
+		}
 	}
 	
 	void session::clear_cache()
