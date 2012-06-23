@@ -1,5 +1,21 @@
 /*! \page changelog Changelog
 
+\section changelog_v0_3_1 Version 0.3.1
+
+New Features:
+
+- Added an experimental support of Borland Build 6. Thanks to Thorsten Schöning who provided the patch.
+- Added support of LIBDIR cmake option to handle correctly Red-Had distributions
+
+Bugs:
+
+- Fixed bug #3536452:
+    - \c cppdb::transaction::~transaction() could leak exception
+    - \c busy_timeout option was not working for sqlite3 backend
+- Fixed incorrect use of SQLITE_STATIC that could cause crash
+
+
+
 \section changelog_v0_3_0 Version 0.3.0
 
 New Features:

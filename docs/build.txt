@@ -25,6 +25,12 @@ Following CMake "ON", "OFF" options options provided for better customizability,
 - DISABLE_ODBC - don't build odbc backend even if the odbc library was found
 - ODBC_BACKEND_INTERNAL - don't build a separate odbc loadable module but rather build it into the cppdb library itself.
 
+Additionally there is a \c LIBDIR option that allows to provide an install prefix for libraries on RH systems like:
+
+\code
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DLIBDIR=lib64
+\endcode
+
 By default CMake would try to find the libraries and header files and would disable backends that do not
 have appropriate onces.
 
