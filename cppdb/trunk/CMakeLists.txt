@@ -3,7 +3,7 @@ project(cppdb)
 
 set(CPPDB_MAJOR 0)
 set(CPPDB_MINOR 3)
-set(CPPDB_PATCH 0)
+set(CPPDB_PATCH 1)
 
 set(CPPDB_VERSION ${CPPDB_MAJOR}.${CPPDB_MINOR}.${CPPDB_PATCH})
 set(CPPDB_SOVERSION ${CPPDB_MAJOR})
@@ -25,6 +25,12 @@ option(SQLITE_BACKEND_INTERNAL	"Link sqlite3 backend into the libcppdb" OFF)
 option(PQ_BACKEND_INTERNAL 	"Link postgresql backend into the libcppdb" OFF)
 option(MYSQL_BACKEND_INTERNAL	"Link mysql backend into the libcppdb" OFF)
 option(ODBC_BACKEND_INTERNAL	"Link odbc backend into the libcppdb" ON)
+
+if(NOT LIBDIR)
+	set(LIBDIR lib CACHE STRING "Library installation directory" FORCE)
+endif()
+
+
 
 
 # General settings
@@ -290,8 +296,8 @@ target_link_libraries(example cppdb)
 
 install(TARGETS ${INST_LIBS} 
 	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
+	LIBRARY DESTINATION ${LIBDIR}
+	ARCHIVE DESTINATION ${LIBDIR}
 	PUBLIC_HEADER DESTINATION include/cppdb)
 
 install(DIRECTORY cppdb DESTINATION include
