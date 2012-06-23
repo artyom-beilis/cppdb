@@ -124,6 +124,7 @@ Connection Properties are:
   "readwrite" and "create" that if the database does not exist the connection fails.
 - \c busy_timeout - the equivalent of \c sqlite3_busy_timeout function. Specifies the minimal number of milliseconds
   to wait before returning a error if the database is locked by another process. 
+- \c vfs - the name of vfs to use
 
 \section impl Implementation Details
 
