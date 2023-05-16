@@ -162,6 +162,14 @@ namespace cppdb {
 		return is_null(index(n));
 	}
 
+	int result::data_type(int col) //Added by CN.
+	{
+		return res_->data_type(col);
+	}
+	int result::data_type(std::string const &n) //Added by CN.
+	{
+		return data_type(index(n));
+	}
 	
 	bool result::fetch(int col,short &v) { return res_->fetch(col,v); }
 	bool result::fetch(int col,unsigned short &v) { return res_->fetch(col,v); }
@@ -177,6 +185,7 @@ namespace cppdb {
 	bool result::fetch(int col,std::string &v) { return res_->fetch(col,v); }
 	bool result::fetch(int col,std::tm &v) { return res_->fetch(col,v); }
 	bool result::fetch(int col,std::ostream &v) { return res_->fetch(col,v); }
+	bool result::fetch(int col,bool &v) { return res_->fetch(col,v); } //CN
 
 	bool result::fetch(std::string const &n,short &v) { return res_->fetch(index(n),v); }
 	bool result::fetch(std::string const &n,unsigned short &v) { return res_->fetch(index(n),v); }
@@ -192,6 +201,7 @@ namespace cppdb {
 	bool result::fetch(std::string const &n,std::string &v) { return res_->fetch(index(n),v); }
 	bool result::fetch(std::string const &n,std::tm &v) { return res_->fetch(index(n),v); }
 	bool result::fetch(std::string const &n,std::ostream &v) { return res_->fetch(index(n),v); }
+	bool result::fetch(std::string const &n,bool &v) { return res_->fetch(index(n),v); }
 
 	bool result::fetch(short &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(unsigned short &v) { return res_->fetch(current_col_++,v); }
@@ -207,6 +217,7 @@ namespace cppdb {
 	bool result::fetch(std::string &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(std::tm &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(std::ostream &v) { return res_->fetch(current_col_++,v); }
+	bool result::fetch(bool &v) { return res_->fetch(current_col_++,v); } //CN
 
 
 
@@ -277,6 +288,12 @@ namespace cppdb {
 		return bind(v);
 	}
 
+	//Added by CN.
+	statement &statement::operator<<(bool v)
+	{
+		return bind(v);
+	}
+	
 	statement &statement::operator<<(void (*manipulator)(statement &st))
 	{
 		manipulator(*this);
@@ -353,6 +370,11 @@ namespace cppdb {
 		stat_->bind(placeholder_++,v);
 		return *this;
 	}
+	statement &statement::bind(bool v)
+	{
+		stat_->bind(placeholder_++,v);
+		return *this;
+	}
 	statement &statement::bind_null()
 	{
 		stat_->bind_null(placeholder_++);
@@ -377,6 +399,11 @@ namespace cppdb {
 		stat_->bind(col,v);
 	}
 	void statement::bind(int col,std::istream &v)
+	{
+		stat_->bind(col,v);
+	}
+	//Added by CN
+	void statement::bind(int col,bool v)
 	{
 		stat_->bind(col,v);
 	}

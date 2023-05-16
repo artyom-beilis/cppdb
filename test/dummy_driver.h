@@ -54,7 +54,9 @@ namespace dummy {
 		virtual bool fetch(int,std::string &){ return false; }
 		virtual bool fetch(int,std::ostream &){ return false; }
 		virtual bool fetch(int,std::tm &){ return false; }
+		virtual bool fetch(int,bool &){ return false; } //Added by CN.
 		virtual bool is_null(int){ return true; }
+		virtual int data_type(int){ return 1700; } //Added by CN.
 		virtual int cols() { return 10; }
 		virtual int name_to_column(std::string const &) {
 			return -1;
@@ -95,6 +97,7 @@ namespace dummy {
 		virtual void bind(int,unsigned long long){}
 		virtual void bind(int,double){}
 		virtual void bind(int,long double){}
+		virtual void bind(int,bool){} //Added by CN.
 		virtual void bind_null(int){}
 		virtual long long sequence_last(std::string const &/*sequence*/) { throw cppdb::not_supported_by_backend("unsupported"); }
 		virtual unsigned long long affected() { return 0; }
