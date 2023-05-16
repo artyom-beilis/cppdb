@@ -186,8 +186,6 @@ namespace cppdb {
 			///
 			virtual bool fetch(int col,std::tm &v) = 0;
 			///
-			/// Added by CN.
-			///
 			virtual bool fetch(int col,bool &v) = 0;
 			///
 			/// Check if the column \a col is NULL starting from 0, should throw invalid_column() if the index out of range
@@ -195,8 +193,6 @@ namespace cppdb {
 			virtual bool is_null(int col) = 0;
 			///
 			/// Return the number of columns in the result. Should be valid even without calling next() first time.
-			///
-			/// Added by CN.
 			///
 			virtual int data_type(int col) = 0;
 			///
@@ -283,7 +279,6 @@ namespace cppdb {
 			/// support from back-end.
 			///
 			virtual void bind(int col,std::istream &) = 0;
-			/// Added by CN.
 			///
 			virtual void bind(int col,bool) = 0;
 			///

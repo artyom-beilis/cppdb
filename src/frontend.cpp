@@ -162,11 +162,11 @@ namespace cppdb {
 		return is_null(index(n));
 	}
 
-	int result::data_type(int col) //Added by CN.
+	int result::data_type(int col)
 	{
 		return res_->data_type(col);
 	}
-	int result::data_type(std::string const &n) //Added by CN.
+	int result::data_type(std::string const &n)
 	{
 		return data_type(index(n));
 	}
@@ -185,7 +185,7 @@ namespace cppdb {
 	bool result::fetch(int col,std::string &v) { return res_->fetch(col,v); }
 	bool result::fetch(int col,std::tm &v) { return res_->fetch(col,v); }
 	bool result::fetch(int col,std::ostream &v) { return res_->fetch(col,v); }
-	bool result::fetch(int col,bool &v) { return res_->fetch(col,v); } //CN
+	bool result::fetch(int col,bool &v) { return res_->fetch(col,v); }
 
 	bool result::fetch(std::string const &n,short &v) { return res_->fetch(index(n),v); }
 	bool result::fetch(std::string const &n,unsigned short &v) { return res_->fetch(index(n),v); }
@@ -217,7 +217,7 @@ namespace cppdb {
 	bool result::fetch(std::string &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(std::tm &v) { return res_->fetch(current_col_++,v); }
 	bool result::fetch(std::ostream &v) { return res_->fetch(current_col_++,v); }
-	bool result::fetch(bool &v) { return res_->fetch(current_col_++,v); } //CN
+	bool result::fetch(bool &v) { return res_->fetch(current_col_++,v); }
 
 
 
@@ -288,7 +288,6 @@ namespace cppdb {
 		return bind(v);
 	}
 
-	//Added by CN.
 	statement &statement::operator<<(bool v)
 	{
 		return bind(v);
@@ -402,7 +401,6 @@ namespace cppdb {
 	{
 		stat_->bind(col,v);
 	}
-	//Added by CN
 	void statement::bind(int col,bool v)
 	{
 		stat_->bind(col,v);

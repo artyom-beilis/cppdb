@@ -225,7 +225,6 @@ namespace cppdb {
 				v=parse_time(PQgetvalue(res_,current_,col));
 				return true;
 			}
-			// Added by CN.
 			virtual bool fetch(int col,bool &v)
 			{
 				if(do_isnull(col))
@@ -237,7 +236,6 @@ namespace cppdb {
 			{
 				return do_isnull(col);
 			}
-			// Added by CN.
 			virtual int data_type(int col)
 			{
 				return PQftype(res_,col);
@@ -444,7 +442,6 @@ namespace cppdb {
 					}
 				}
 			}
-			// Added by CN.
 			virtual void bind(int col,bool v) 
 			{
 				check(col);
@@ -800,7 +797,7 @@ namespace cppdb {
 			{
 				return "postgresql";
 			}
-			PGconn *pg_conn(){ return conn_; } //CN
+			PGconn *pg_conn(){ return conn_; }
 		private:
 			PGconn *conn_;
 			unsigned long long prepared_id_;

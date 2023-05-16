@@ -264,11 +264,11 @@ namespace cppdb {
 		bool is_null(std::string const &n);
 
 		///
-		/// CN:Return data type (oid) of column number \a col (starting from 0)
+		/// Return data type (oid) of column number \a col (starting from 0)
 		///
 		int data_type(int col);
 		///
-		/// CN:Return data type (oid) of column named \a n
+		/// Return data type (oid) of column named \a n
 		///
 		int data_type(std::string const &n);
 
@@ -359,7 +359,6 @@ namespace cppdb {
 		///
 		bool fetch(int col,std::ostream &v);
 		///
-		/// Added by CN.
 		///
 		bool fetch(int col,bool &v);
 
@@ -434,7 +433,6 @@ namespace cppdb {
 		///
 		bool fetch(std::string const &n,std::ostream &v);
 		///
-		/// Added by CN.
 		///
 		bool fetch(std::string const &n,bool &v);
 
@@ -498,7 +496,6 @@ namespace cppdb {
 		///
 		bool fetch(std::ostream &v);
 		///
-		/// Added by CN.
 		///
 		bool fetch(bool &v);
 
@@ -743,7 +740,6 @@ namespace cppdb {
 		///
 		statement &bind(std::istream &v);
 		///
-		/// Added by CN
 		///
 		statement &bind(bool v);
 		///
@@ -838,7 +834,6 @@ namespace cppdb {
 		///
 		void bind(int col,std::istream &v);
 		///
-		/// Added by CN.
 		///
 		void bind(int col,bool v);
 		///
@@ -923,7 +918,6 @@ namespace cppdb {
 		///
 		statement &operator<<(std::istream &v);
 		///
-		/// Added by CN.
 		///
 		statement &operator<<(bool v);
 		///
