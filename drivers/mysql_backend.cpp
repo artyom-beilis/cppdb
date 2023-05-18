@@ -478,8 +478,8 @@ namespace prep {
 			std::vector<char> vbuf;
 			char *ptr;
 			unsigned long length;
-			my_bool is_null;
-			my_bool error;
+			bool is_null;
+			bool error;
 		};
 	public:
 
@@ -793,7 +793,7 @@ namespace prep {
 
 	class statement : public backend::statement {
 		struct param {
-			my_bool is_null;
+			bool is_null;
 			bool is_blob;
 			unsigned long length;
 			std::string value;
@@ -1225,7 +1225,7 @@ public:
 		}
 		if(ci.has("opt_reconnect")) {
 			if(unsigned reconnect = ci.get("opt_reconnect", 1)) {
-				my_bool value = reconnect;
+				bool value = reconnect;
 				mysql_set_option(MYSQL_OPT_RECONNECT, &value);
 			}
 		}
@@ -1241,7 +1241,7 @@ public:
 		}
 		if(ci.has("opt_ssl_verify_server_cert")) {
 			if(unsigned verify = ci.get("opt_ssl_verify_server_cert", 1)) {
-				my_bool value = verify;
+				bool value = verify;
 				mysql_set_option(MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &value);
 			}
 		}
@@ -1270,14 +1270,14 @@ public:
 		}
 		if(ci.has("report_data_truncation")) {
 			if(unsigned report = ci.get("report_data_truncation", 1)) {
-				my_bool value = report;
+				bool value = report;
 				mysql_set_option(MYSQL_REPORT_DATA_TRUNCATION, &value);
 			}
 		}
 #if MYSQL_VERSION_ID >= 40101
 		if(ci.has("secure_auth")) {
 			if(unsigned secure = ci.get("secure_auth", 1)) {
-				my_bool value = secure;
+				bool value = secure;
 				mysql_set_option(MYSQL_SECURE_AUTH, &value);
 			}
 		}
