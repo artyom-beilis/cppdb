@@ -35,7 +35,7 @@ namespace cppdb {
 		}
 		~throw_guard()
 		{
-			if(conn_ && std::uncaught_exception()) {
+			if(conn_ && std::uncaught_exceptions()) {
 				conn_->recyclable(false);
 			}
 		}
