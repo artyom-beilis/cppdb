@@ -246,7 +246,7 @@ void test3(cppdb::ref_ptr<cppdb::backend::connection> sql)
 		stmt = sql->prepare("select i,r,t,s from test");
 	res = stmt->query();
 	{
-		TEST(res->cols()==test_blob ? 5 : 4);
+		TEST(res->cols()==(test_blob ? 5 : 4));
 		TEST(res->column_to_name(0)=="i");
 		TEST(res->column_to_name(1)=="r");
 		TEST(res->column_to_name(2)=="t");
