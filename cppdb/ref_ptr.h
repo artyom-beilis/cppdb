@@ -177,4 +177,14 @@ namespace cppdb {
 		atomic_counter count_;
 	};
 } // cppdb
+
+#if __cplusplus <= 199711L
+namespace std{
+template<typename T>
+struct unique_ptr : public auto_ptr<T>{}; }
+
+template <typename T>
+T& move(T &x) { return x; }
+#endif
+
 #endif
