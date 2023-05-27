@@ -19,7 +19,6 @@
 #define CPPDB_CONNECTION_SPECIFIC_H
 
 #include <cppdb/defs.h>
-#include <cppdb/ref_ptr.h>
 #include <memory>
 
 namespace cppdb {
