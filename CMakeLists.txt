@@ -227,7 +227,6 @@ set(CPPDB_SRC
 	src/pool.cpp
 	src/backend.cpp
 	src/frontend.cpp
-	src/atomic_counter.cpp
 	${INTERNAL_SOURCES}
 	)
 
