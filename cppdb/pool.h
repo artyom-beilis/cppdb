@@ -20,7 +20,7 @@
 
 #include <cppdb/defs.h>
 #include <cppdb/ref_ptr.h>
-#include <cppdb/mutex.h>
+#include <mutex>
 #include <cppdb/utils.h>
 #include <memory>
 #include <list>
@@ -99,7 +99,7 @@ namespace cppdb {
 		connection_info ci_;
 		
 		// mutex protected begin
-		mutex lock_;
+		std::mutex lock_;
 		size_t size_;
 		pool_type pool_;
 		// mutex protected end

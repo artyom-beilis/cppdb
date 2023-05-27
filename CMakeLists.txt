@@ -220,7 +220,6 @@ endif()
 
 set(CPPDB_SRC
 	src/utils.cpp
-	src/mutex.cpp
 	src/driver_manager.cpp
 	src/conn_manager.cpp
 	src/shared_object.cpp

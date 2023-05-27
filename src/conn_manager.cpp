@@ -47,7 +47,7 @@ namespace cppdb {
 		ref_ptr<pool> p;
 		/// seems we may be using pool
 		if(cs.find("@pool_size")!=std::string::npos) {
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			connections_type::iterator pool_ptr = connections_.find(cs);
 			if(pool_ptr!=connections_.end())
 				p = pool_ptr->second;
@@ -68,7 +68,7 @@ namespace cppdb {
 		}
 		ref_ptr<pool> p;
 		{
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			ref_ptr<pool> &ref_p = connections_[ci.connection_string];
 			if(!ref_p) {
 				ref_p = pool::create(ci);
@@ -82,7 +82,7 @@ namespace cppdb {
 		std::vector<ref_ptr<pool> > pools_;
 		pools_.reserve(100);
 		{
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			for(connections_type::iterator p=connections_.begin();p!=connections_.end();++p) {
 				pools_.push_back(p->second);
 			}
@@ -92,7 +92,7 @@ namespace cppdb {
 		}
 		pools_.clear();
 		{
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			for(connections_type::iterator p=connections_.begin();p!=connections_.end();) {
 				if(p->second->use_count() == 1) {
 					pools_.push_back(p->second);

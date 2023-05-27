@@ -76,7 +76,7 @@ namespace cppdb {
 		pool_type garbage;
 		std::time_t now = time(0);
 		{
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			// Nothing there should throw so it is safe
 			pool_type::iterator p = pool_.begin(),tmp;
 			while(p!=pool_.end()) {
@@ -109,7 +109,7 @@ namespace cppdb {
 		pool_type garbage;
 		std::time_t now = time(0);
 		{
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			// under lock do all very fast
 			if(c.get()) {
 				pool_.push_back(entry());
@@ -150,7 +150,7 @@ namespace cppdb {
 	{
 		pool_type garbage;
 		{
-			mutex::guard l(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			garbage.swap(pool_);
 			size_ = 0;
 		} // destroy outside mutex scope

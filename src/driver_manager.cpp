@@ -20,7 +20,7 @@
 #include <cppdb/shared_object.h>
 #include <cppdb/backend.h>
 #include <cppdb/utils.h>
-#include <cppdb/mutex.h>
+#include <mutex>
 
 #include <vector>
 #include <list>
@@ -82,7 +82,7 @@ namespace cppdb {
 		ref_ptr<backend::driver> drv_ptr;
 		drivers_type::iterator p;
 		{ // get driver
-			mutex::guard lock(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			p=drivers_.find(conn.driver);
 			if(p!=drivers_.end()) {
 				drv_ptr = p->second;
@@ -98,7 +98,7 @@ namespace cppdb {
 	{
 		std::list<ref_ptr<backend::driver> > garbage;
 		{
-			mutex::guard lock(lock_);
+			std::lock_guard<std::mutex> l(lock_);
 			drivers_type::iterator p=drivers_.begin(),tmp;
 			while(p!=drivers_.end()) {
 				if(!p->second->in_use()) {
@@ -183,7 +183,7 @@ namespace cppdb {
 		if(!drv) {
 			throw cppdb_error("cppdb::driver_manager::install_driver: Can't install empty driver");
 		}
-		mutex::guard lock(lock_);
+		std::lock_guard<std::mutex> l(lock_);
 		drivers_[name]=drv;
 	}
 
@@ -200,17 +200,17 @@ namespace cppdb {
 	
 	void driver_manager::add_search_path(std::string const &p)
 	{
-		mutex::guard l(lock_);
+		std::lock_guard<std::mutex> l(lock_);
 		search_paths_.push_back(p);
 	}
 	void driver_manager::clear_search_paths()
 	{
-		mutex::guard l(lock_);
+		std::lock_guard<std::mutex> l(lock_);
 		search_paths_.clear();
 	}
 	void driver_manager::use_default_search_path(bool v)
 	{
-		mutex::guard l(lock_);
+		std::lock_guard<std::mutex> l(lock_);
 		no_default_directory_ = !v;
 	}
 	driver_manager &driver_manager::instance()
