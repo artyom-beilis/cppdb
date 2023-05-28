@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(cppdb)
 
-set(CPPDB_MAJOR 0)
-set(CPPDB_MINOR 3)
+set(CPPDB_MAJOR 1)
+set(CPPDB_MINOR 0)
 set(CPPDB_PATCH 1)
 
 set(CPPDB_VERSION ${CPPDB_MAJOR}.${CPPDB_MINOR}.${CPPDB_PATCH})
