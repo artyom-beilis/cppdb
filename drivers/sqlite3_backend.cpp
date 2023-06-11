@@ -166,6 +166,10 @@ namespace cppdb {
 				v=parse_time((char const *)(sqlite3_column_text(st_,col)));
 				return true;
 			}
+			virtual bool fetch(int col,bool &v)
+			{
+				return true;
+			}
 			virtual bool is_null(int col)
 			{
 				return do_is_null(col);
@@ -266,6 +270,9 @@ namespace cppdb {
 			{
 				reset_stat();
 				check_bind(sqlite3_bind_int(st_,col,v));
+			}
+			virtual void bind(int col,bool)
+			{
 			}
 			template<typename IntType>
 			void do_bind(int col,IntType value)

@@ -54,6 +54,7 @@ namespace dummy {
 		virtual bool fetch(int,std::string &){ return false; }
 		virtual bool fetch(int,std::ostream &){ return false; }
 		virtual bool fetch(int,std::tm &){ return false; }
+		virtual bool fetch(int,bool &){ return false; }
 		virtual bool is_null(int){ return true; }
 		virtual int cols() { return 10; }
 		virtual int name_to_column(std::string const &) {
@@ -95,6 +96,7 @@ namespace dummy {
 		virtual void bind(int,unsigned long long){}
 		virtual void bind(int,double){}
 		virtual void bind(int,long double){}
+		virtual void bind(int,bool){}
 		virtual void bind_null(int){}
 		virtual long long sequence_last(std::string const &/*sequence*/) { throw cppdb::not_supported_by_backend("unsupported"); }
 		virtual unsigned long long affected() { return 0; }

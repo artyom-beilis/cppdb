@@ -223,6 +223,13 @@ namespace cppdb {
 				v=parse_time(PQgetvalue(res_,current_,col));
 				return true;
 			}
+			virtual bool fetch(int col,bool &v)
+			{
+				if(do_isnull(col))
+					return false;
+				v=*PQgetvalue(res_,current_,col) == 't';
+				return true;
+			}
 			virtual bool is_null(int col)
 			{
 				return do_isnull(col);
@@ -428,6 +435,12 @@ namespace cppdb {
 						throw;
 					}
 				}
+			}
+			virtual void bind(int col,bool v)
+			{
+				check(col);
+				params_values_[col-1]=v ? "true" : "false";
+				params_set_[col-1]=text_param;
 			}
 			
 			template<typename T>

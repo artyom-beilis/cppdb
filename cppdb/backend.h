@@ -186,6 +186,14 @@ namespace cppdb {
 			///
 			virtual bool fetch(int col,std::tm &v) = 0;
 			///
+			/// Fetch a boolean value for column \a col starting from 0.
+			/// Returns true if ok, returns false if the column value is NULL and the referenced object should remain unchanged
+			///
+			/// Should throw invalid_column() \a col value is invalid. If the data can't be converted
+			/// to a boolean it should throw bad_value_cast()
+			///
+			virtual bool fetch(int col,bool &v) = 0;
+			///
 			/// Check if the column \a col is NULL starting from 0, should throw invalid_column() if the index out of range
 			///
 			virtual bool is_null(int col) = 0;
@@ -349,6 +357,14 @@ namespace cppdb {
 			/// support from back-end.
 			///
 			virtual void bind(int col,long double v) = 0;
+			///
+			/// Bind a boolean value to column \a col (starting from 1).
+			///
+			/// Should throw invalid_placeholder() if the value of col is out of range. May
+			/// ignore if it is impossible to know whether the placeholder exists without special
+			/// support from back-end.
+			///
+			virtual void bind(int col,bool v) = 0;
 			///
 			/// Bind a NULL value to column \a col (starting from 1).
 			///

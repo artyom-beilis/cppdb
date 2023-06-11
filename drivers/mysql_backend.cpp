@@ -196,6 +196,10 @@ namespace unprep {
 			v = parse_time(tmp);
 			return true;
 		}
+		virtual bool fetch(int col,bool &v)
+		{
+			return true;
+		}
 		///
 		/// Check if the column \a col is NULL starting from 0, should throw invalid_column() if the index out of range
 		///
@@ -310,6 +314,9 @@ namespace unprep {
 			ss << v.rdbuf();
 			std::string tmp=ss.str();
 			bind(col,tmp);
+		}
+		virtual void bind(int col,bool v)
+		{
 		}
 		template<typename T>
 		void do_bind(int col,T v)
@@ -710,6 +717,10 @@ namespace prep {
 			v = parse_time(tmp);
 			return true;
 		}
+		virtual bool fetch(int col,bool &v)
+		{
+			return true;
+		}
 		///
 		/// Check if the column \a col is NULL starting from 0, should throw invalid_column() if the index out of range
 		///
@@ -909,6 +920,9 @@ namespace prep {
 			ss << v.rdbuf();
 			at(col).set_str(ss.str());
 			at(col).is_blob = true;
+		}
+		virtual void bind(int col,bool v)
+		{
 		}
 		template<typename T>
 		void do_bind(int col,T v)

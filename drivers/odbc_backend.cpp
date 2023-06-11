@@ -500,6 +500,10 @@ public:
 		v = parse_time(at(col).second);
 		return true;
 	}
+	virtual bool fetch(int col,bool &v)
+	{
+		return true;
+	}
 	virtual bool is_null(int col)
 	{
 		return at(col).first;
@@ -700,6 +704,9 @@ public:
 		ss << in.rdbuf();
 		std::string s = ss.str();
 		param_at(col).set_binary(s.c_str(),s.c_str()+s.size());
+	}
+	virtual void bind(int col,bool)
+	{
 	}
 	template<typename T>
 	void do_bind_num(int col,T v)
