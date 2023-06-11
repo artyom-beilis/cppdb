@@ -186,11 +186,15 @@ namespace cppdb {
 			///
 			virtual bool fetch(int col,std::tm &v) = 0;
 			///
+			virtual bool fetch(int col,bool &v) = 0;
+			///
 			/// Check if the column \a col is NULL starting from 0, should throw invalid_column() if the index out of range
 			///
 			virtual bool is_null(int col) = 0;
 			///
 			/// Return the number of columns in the result. Should be valid even without calling next() first time.
+			///
+			virtual int data_type(int col) = 0;
 			///
 			virtual int cols() = 0;
 			///
@@ -276,11 +280,14 @@ namespace cppdb {
 			///
 			virtual void bind(int col,std::istream &) = 0;
 			///
+			virtual void bind(int col,bool) = 0;
+			///
 			/// Bind an integer value to column \a col (starting from 1).
 			///
 			/// Should throw invalid_placeholder() if the value of col is out of range. May
 			/// ignore if it is impossible to know whether the placeholder exists without special
 			/// support from back-end.
+			///
 			///
 			virtual void bind(int col,int v) = 0;
 			///

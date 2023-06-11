@@ -264,6 +264,15 @@ namespace cppdb {
 		bool is_null(std::string const &n);
 
 		///
+		/// Return data type (oid) of column number \a col (starting from 0)
+		///
+		int data_type(int col);
+		///
+		/// Return data type (oid) of column named \a n
+		///
+		int data_type(std::string const &n);
+
+		///
 		/// Clears the result, no further use of the result should be done until it is assigned again with a new statement result.
 		///
 		/// It is useful when you want to release all data and return the statement to cache
@@ -349,6 +358,9 @@ namespace cppdb {
 		/// If the data type is not blob, it may throw bad_value_cast()
 		///
 		bool fetch(int col,std::ostream &v);
+		///
+		///
+		bool fetch(int col,bool &v);
 
 		///
 		/// Fetch a value from column named \a n into \a v. Returns false
@@ -420,7 +432,9 @@ namespace cppdb {
 		/// the \a n value is invalid throws invalid_column exception
 		///
 		bool fetch(std::string const &n,std::ostream &v);
-
+		///
+		///
+		bool fetch(std::string const &n,bool &v);
 
 		///
 		/// Fetch a value from the next column in the row starting from the first one. Returns false
@@ -481,6 +495,9 @@ namespace cppdb {
 		/// automatically.
 		///
 		bool fetch(std::ostream &v);
+		///
+		///
+		bool fetch(bool &v);
 
 		///
 		/// Get a value of type \a T from column named \a name. If the column
@@ -723,6 +740,9 @@ namespace cppdb {
 		///
 		statement &bind(std::istream &v);
 		///
+		///
+		statement &bind(bool v);
+		///
 		/// Bind a NULL value  to the next placeholder marked with '?' marker in the query.
 		///
 		/// If number of calls is higher then the number placeholders is the statement it
@@ -814,6 +834,9 @@ namespace cppdb {
 		///
 		void bind(int col,std::istream &v);
 		///
+		///
+		void bind(int col,bool v);
+		///
 		/// Bind a NULL value to the placeholder number \a col (starting from 1) marked with '?' marker in the query.
 		///
 		/// If \a cols is invalid (less then 1 or higher then the number of the placeholders is the statement) it
@@ -894,6 +917,9 @@ namespace cppdb {
 		/// Same as bind(v);
 		///
 		statement &operator<<(std::istream &v);
+		///
+		///
+		statement &operator<<(bool v);
 		///
 		/// Apply manipulator on the statement, same as manipulator(*this).
 		///
